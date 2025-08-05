@@ -10,4 +10,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+
+  <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild">
+    <Message Text="🔐 Generating compile-time obfuscated constants..." Importance="high" />
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\ConstantObfuscator\ConstantObfuscator.csproj&quot; -- &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+
 </Project>

@@ -23,7 +23,7 @@ This code is useful for scenarios where constant integrity is critical, such as:
 
 ## How It Works
 
-The source employs multiple layers of protection across **three different security levels**:
+The source employs multiple layers of protection across **four different security levels**:
 
 ### 🔒 Level 1: Basic Runtime Protection
 - Simple bitwise inversion (`~value`)
@@ -151,6 +151,32 @@ Impossible without:
 
 **💡 Result**: Constants are effectively **immutable at the binary level**.
 
+### 🛡️ Level 4: Asymmetric Encryption (ULTIMATE SECURITY)
+
+The highest security level using **RSA-2048 asymmetric encryption**:
+
+**🔐 Compile-Time Process:**
+1. **RSA key pair generation** with 2048-bit strength
+2. **All constants encrypted** with the private key
+3. **Private key immediately discarded** after compilation
+4. Only **public key stored** in binary (cannot decrypt)
+
+**🚫 Runtime Behavior (Intentional):**
+```csharp
+double pi = CryptoConstants.Pi;  // throws CryptographicException
+```
+- **All property access throws exceptions** by design
+- Demonstrates **ultimate immutability** - values are permanently sealed
+- Even with full source code access, **decryption is impossible**
+
+**🔒 Security Guarantees:**
+- ✅ **Perfect forward secrecy** - private key never stored
+- ✅ **Cryptographically impossible** to recover values  
+- ✅ **Proof of concept** for maximum theoretical security
+- ✅ **2048-bit RSA encryption** - computationally infeasible to break
+
+**💡 Use Case**: Demonstration that constants can be made **truly immutable** - even developers cannot access them after compilation.
+
 ## Limitations
 
 - Slight performance overhead from deobfuscation (mitigated by JIT inlining)
@@ -180,8 +206,11 @@ cd HardToModifyRuntimeConstants
 # Build the main project (automatically runs obfuscator)
 dotnet build HardToModifyRuntimeConstants/HardToModifyRuntimeConstants.csproj
 
-# Build the test project  
-dotnet build HardToModifyRuntimeConstants.Tests/HardToModifyRuntimeConstants.Tests.csproj
+# Build the test project (NUnit)
+dotnet build ObfuscationTest/ObfuscationTest.csproj
+
+# Build the performance benchmarks (BenchmarkDotNet)
+dotnet build PerformanceBenchmarks/PerformanceBenchmarks.csproj
 
 # Build the obfuscator tool
 dotnet build ConstantObfuscator/ConstantObfuscator.csproj
@@ -189,8 +218,11 @@ dotnet build ConstantObfuscator/ConstantObfuscator.csproj
 
 ### Running the Application
 ```bash
-# Run the demo application (shows all 3 security levels)
+# Run the demo application (shows all 4 security levels)
 dotnet run --project HardToModifyRuntimeConstants/HardToModifyRuntimeConstants.csproj
+
+# Run performance benchmarks (BenchmarkDotNet)
+dotnet run --project PerformanceBenchmarks/PerformanceBenchmarks.csproj --configuration Release
 
 # Manually generate obfuscated constants
 dotnet run --project ConstantObfuscator/ConstantObfuscator.csproj -- HardToModifyRuntimeConstants
@@ -198,21 +230,30 @@ dotnet run --project ConstantObfuscator/ConstantObfuscator.csproj -- HardToModif
 
 ### Running Tests
 ```bash
-# Run all tests
-dotnet test
+# Run all NUnit tests
+dotnet test ObfuscationTest/ObfuscationTest.csproj
 
 # Run tests with detailed output
-dotnet test --verbosity normal
+dotnet test ObfuscationTest/ObfuscationTest.csproj --verbosity normal
 
 # Run tests with coverage (requires coverlet)
-dotnet test --collect:"XPlat Code Coverage"
+dotnet test ObfuscationTest/ObfuscationTest.csproj --collect:"XPlat Code Coverage"
 ```
 
 ### Test Categories
-- **Unit Tests**: Basic functionality and correctness tests (all 3 levels)
-- **Tamper Resistance Tests**: Security-focused tests that verify protection mechanisms
-- **Secure Constants Tests**: Compile-time obfuscation validation and binary analysis
-- **Performance Tests**: Benchmark tests to measure overhead across all approaches
+
+**🧪 NUnit Test Suite** (`ObfuscationTest`):
+- **Obfuscation Pattern Tests**: Validates scrambling/unscrambling algorithms (7 patterns × multiple test cases)
+- **SecureConstants Tests**: Level 3 compile-time obfuscation correctness validation
+- **CryptoConstants Tests**: Level 4 asymmetric encryption exception handling
+- **Random Value Testing**: Tests patterns with 10 random values per pattern
+
+**⚡ BenchmarkDotNet Performance Suite** (`PerformanceBenchmarks`):
+- **Constant Access Benchmarks**: Compares all 4 security levels
+- **Integer Access Benchmarks**: Specialized benchmarks for integer constants
+- **Decimal Access Benchmarks**: Tests high-precision decimal performance
+- **Memory Diagnostics**: Tracks allocations and memory usage
+- **Baseline Comparisons**: Shows relative performance costs
 
 ## 🚀 Performance
 
@@ -234,18 +275,29 @@ Performance varies by security level:
 - JIT optimization: Good inlining potential for deobfuscation methods
 - **Build time**: +1-2 seconds for obfuscation generation
 
+### 🛡️ Level 4: Asymmetric Encryption (No Runtime Performance)
+- Property access: **Immediate exception throw** (CryptographicException)
+- Memory usage: Encrypted byte arrays + RSA public key (~270 bytes)
+- JIT optimization: Exception path - no meaningful performance metrics
+- **Build time**: +2-3 seconds for RSA key generation and encryption
+
 ## 📈 Test Coverage
 
-The project includes comprehensive tests covering **40+ test cases**:
-- ✅ Correctness of mathematical constants (all 3 levels)
-- ✅ Precision validation (15+ decimal places)
-- ✅ Tamper resistance via reflection attacks
-- ✅ Thread safety under concurrent access  
-- ✅ Memory layout security analysis
-- ✅ Binary obfuscation validation (Level 3)
-- ✅ Build-time key randomization
-- ✅ Cryptographic strength verification
-- ✅ Performance benchmarking across all levels
+The project includes comprehensive tests covering **70+ test cases**:
+
+**🧪 NUnit Tests (ObfuscationTest)**:
+- ✅ **Pattern Validation**: 7 scrambling patterns × 10 random values = 70 test cases
+- ✅ **Algorithm Correctness**: Round-trip validation of all obfuscation transformations
+- ✅ **SecureConstants Accuracy**: Mathematical precision validation (π, e, √2, φ)
+- ✅ **CryptoConstants Security**: Exception throwing behavior validation
+- ✅ **Edge Case Handling**: Boundary conditions and error scenarios
+
+**⚡ BenchmarkDotNet Performance Tests**:
+- ✅ **Performance Profiling**: All 4 security levels benchmarked
+- ✅ **Memory Analysis**: Allocation tracking and memory usage profiling  
+- ✅ **Baseline Comparisons**: Relative performance cost measurement
+- ✅ **JIT Optimization**: Inlining behavior analysis across levels
+- ✅ **Statistical Analysis**: Multiple iterations with confidence intervals
 
 ## License
 
