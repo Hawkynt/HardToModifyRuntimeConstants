@@ -3,36 +3,37 @@ using System.Reflection;
 
 namespace HardToModifyRuntimeConstants.Tests;
 
+[TestFixture]
 public class ConstantsTests
 {
-    [Fact]
+    [Test]
     public void Pi_ShouldReturnCorrectValue()
     {
         double expected = Math.PI;
         double actual = Constants.Pi;
         
-        Assert.Equal(expected, actual, precision: 15);
+        Assert.That(actual, Is.EqualTo(expected).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void E_ShouldReturnCorrectValue()
     {
         double expected = Math.E;
         double actual = Constants.E;
         
-        Assert.Equal(expected, actual, precision: 15);
+        Assert.That(actual, Is.EqualTo(expected).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void Sqrt2_ShouldReturnCorrectValue()
     {
         double expected = Math.Sqrt(2);
         double actual = Constants.Sqrt2;
         
-        Assert.Equal(expected, actual, precision: 15);
+        Assert.That(actual, Is.EqualTo(expected).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldReturnConsistentValues()
     {
         // Test that multiple calls return the same value
@@ -40,36 +41,36 @@ public class ConstantsTests
         double pi2 = Constants.Pi;
         double pi3 = Constants.Pi;
         
-        Assert.Equal(pi1, pi2);
-        Assert.Equal(pi2, pi3);
+        Assert.That(pi2, Is.EqualTo(pi1));
+        Assert.That(pi3, Is.EqualTo(pi2));
         
         double e1 = Constants.E;
         double e2 = Constants.E;
         double e3 = Constants.E;
         
-        Assert.Equal(e1, e2);
-        Assert.Equal(e2, e3);
+        Assert.That(e2, Is.EqualTo(e1));
+        Assert.That(e3, Is.EqualTo(e2));
         
         double sqrt2_1 = Constants.Sqrt2;
         double sqrt2_2 = Constants.Sqrt2;
         double sqrt2_3 = Constants.Sqrt2;
         
-        Assert.Equal(sqrt2_1, sqrt2_2);
-        Assert.Equal(sqrt2_2, sqrt2_3);
+        Assert.That(sqrt2_2, Is.EqualTo(sqrt2_1));
+        Assert.That(sqrt2_3, Is.EqualTo(sqrt2_2));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldBeReadOnly()
     {
         // Verify that the Constants class cannot be instantiated
         var constructors = typeof(Constants).GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.Empty(constructors);
+        Assert.That(constructors, Is.Empty);
         
         // Verify that the class is static
-        Assert.True(typeof(Constants).IsAbstract && typeof(Constants).IsSealed);
+        Assert.That(typeof(Constants).IsAbstract && typeof(Constants).IsSealed, Is.True);
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldHaveCorrectPrecision()
     {
         // Test precision against known high-precision values
@@ -77,45 +78,45 @@ public class ConstantsTests
         const double HIGH_PRECISION_E = 2.718281828459045;
         const double HIGH_PRECISION_SQRT2 = 1.4142135623730951;
         
-        Assert.Equal(HIGH_PRECISION_PI, Constants.Pi, precision: 15);
-        Assert.Equal(HIGH_PRECISION_E, Constants.E, precision: 15);
-        Assert.Equal(HIGH_PRECISION_SQRT2, Constants.Sqrt2, precision: 15);
+        Assert.That(Constants.Pi, Is.EqualTo(HIGH_PRECISION_PI).Within(1e-15));
+        Assert.That(Constants.E, Is.EqualTo(HIGH_PRECISION_E).Within(1e-15));
+        Assert.That(Constants.Sqrt2, Is.EqualTo(HIGH_PRECISION_SQRT2).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldNotBeNaN()
     {
-        Assert.False(double.IsNaN(Constants.Pi));
-        Assert.False(double.IsNaN(Constants.E));
-        Assert.False(double.IsNaN(Constants.Sqrt2));
+        Assert.That(double.IsNaN(Constants.Pi), Is.False);
+        Assert.That(double.IsNaN(Constants.E), Is.False);
+        Assert.That(double.IsNaN(Constants.Sqrt2), Is.False);
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldNotBeInfinity()
     {
-        Assert.False(double.IsInfinity(Constants.Pi));
-        Assert.False(double.IsInfinity(Constants.E));
-        Assert.False(double.IsInfinity(Constants.Sqrt2));
+        Assert.That(double.IsInfinity(Constants.Pi), Is.False);
+        Assert.That(double.IsInfinity(Constants.E), Is.False);
+        Assert.That(double.IsInfinity(Constants.Sqrt2), Is.False);
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldHavePositiveValues()
     {
-        Assert.True(Constants.Pi > 0);
-        Assert.True(Constants.E > 0);
-        Assert.True(Constants.Sqrt2 > 0);
+        Assert.That(Constants.Pi, Is.GreaterThan(0));
+        Assert.That(Constants.E, Is.GreaterThan(0));
+        Assert.That(Constants.Sqrt2, Is.GreaterThan(0));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldHaveExpectedRanges()
     {
         // Pi should be between 3 and 4
-        Assert.InRange(Constants.Pi, 3.0, 4.0);
+        Assert.That(Constants.Pi, Is.InRange(3.0, 4.0));
         
         // E should be between 2 and 3
-        Assert.InRange(Constants.E, 2.0, 3.0);
+        Assert.That(Constants.E, Is.InRange(2.0, 3.0));
         
         // Sqrt(2) should be between 1 and 2
-        Assert.InRange(Constants.Sqrt2, 1.0, 2.0);
+        Assert.That(Constants.Sqrt2, Is.InRange(1.0, 2.0));
     }
 }

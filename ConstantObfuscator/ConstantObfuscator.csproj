@@ -8,4 +8,14 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Level3.Backward.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Level3.Backward.cs">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

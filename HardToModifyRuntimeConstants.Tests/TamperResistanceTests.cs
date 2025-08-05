@@ -3,9 +3,10 @@ using System.Reflection;
 
 namespace HardToModifyRuntimeConstants.Tests;
 
+[TestFixture]
 public class TamperResistanceTests
 {
-    [Fact]
+    [Test]
     public void Constants_ShouldResistReflectionBasedTampering()
     {
         // Get original values
@@ -35,12 +36,12 @@ public class TamperResistanceTests
         }
         
         // Verify values are still correct after tampering attempt
-        Assert.Equal(originalPi, Constants.Pi, precision: 15);
-        Assert.Equal(originalE, Constants.E, precision: 15);
-        Assert.Equal(originalSqrt2, Constants.Sqrt2, precision: 15);
+        Assert.That(Constants.Pi, Is.EqualTo(originalPi).Within(1e-15));
+        Assert.That(Constants.E, Is.EqualTo(originalE).Within(1e-15));
+        Assert.That(Constants.Sqrt2, Is.EqualTo(originalSqrt2).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldHaveObfuscatedStorage()
     {
         Type constantsType = typeof(Constants);
@@ -50,15 +51,15 @@ public class TamperResistanceTests
         var storageField = privateFields.FirstOrDefault(f => f.Name.Contains("storage"));
         var keyField = privateFields.FirstOrDefault(f => f.Name.Contains("Key"));
         
-        Assert.NotNull(storageField);
-        Assert.NotNull(keyField);
+        Assert.That(storageField, Is.Not.Null);
+        Assert.That(keyField, Is.Not.Null);
         
         // Verify these fields are readonly
-        Assert.True(storageField.IsInitOnly);
-        Assert.True(keyField.IsInitOnly);
+        Assert.That(storageField.IsInitOnly, Is.True);
+        Assert.That(keyField.IsInitOnly, Is.True);
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldUseRandomizedKeys()
     {
         // This test verifies that the random key mechanism is working
@@ -67,22 +68,22 @@ public class TamperResistanceTests
         Type constantsType = typeof(Constants);
         FieldInfo keyField = constantsType.GetField("_storageKey", BindingFlags.NonPublic | BindingFlags.Static);
         
-        Assert.NotNull(keyField);
+        Assert.That(keyField, Is.Not.Null);
         
         long keyValue = (long)keyField.GetValue(null);
         
         // The key should not be zero (extremely unlikely with Random.Shared.NextInt64())
-        Assert.NotEqual(0L, keyValue);
+        Assert.That(keyValue, Is.Not.EqualTo(0L));
         
         // The key should be different from the pepper value
         FieldInfo pepperField = constantsType.GetField("_pepper", BindingFlags.NonPublic | BindingFlags.Static);
-        Assert.NotNull(pepperField);
+        Assert.That(pepperField, Is.Not.Null);
         
         long pepperValue = (long)pepperField.GetValue(null);
-        Assert.NotEqual(pepperValue, keyValue);
+        Assert.That(keyValue, Is.Not.EqualTo(pepperValue));
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldMaintainConsistencyUnderConcurrentAccess()
     {
         const int numTasks = 10;
@@ -117,14 +118,14 @@ public class TamperResistanceTests
         {
             for (int i = 0; i < taskResults.Length; i += 3)
             {
-                Assert.Equal(expectedPi, taskResults[i], precision: 15);
-                Assert.Equal(expectedE, taskResults[i + 1], precision: 15);
-                Assert.Equal(expectedSqrt2, taskResults[i + 2], precision: 15);
+                Assert.That(taskResults[i], Is.EqualTo(expectedPi).Within(1e-15));
+                Assert.That(taskResults[i + 1], Is.EqualTo(expectedE).Within(1e-15));
+                Assert.That(taskResults[i + 2], Is.EqualTo(expectedSqrt2).Within(1e-15));
             }
         }
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldHaveSecureMemoryLayout()
     {
         // Verify the constants are accessed through unsafe pointers
@@ -135,21 +136,21 @@ public class TamperResistanceTests
         PropertyInfo eProperty = constantsType.GetProperty("E");
         PropertyInfo sqrt2Property = constantsType.GetProperty("Sqrt2");
         
-        Assert.NotNull(piProperty);
-        Assert.NotNull(eProperty);
-        Assert.NotNull(sqrt2Property);
+        Assert.That(piProperty, Is.Not.Null);
+        Assert.That(eProperty, Is.Not.Null);
+        Assert.That(sqrt2Property, Is.Not.Null);
         
         // Properties should be static and have only getters
-        Assert.True(piProperty.GetMethod.IsStatic);
-        Assert.True(eProperty.GetMethod.IsStatic);
-        Assert.True(sqrt2Property.GetMethod.IsStatic);
+        Assert.That(piProperty.GetMethod.IsStatic, Is.True);
+        Assert.That(eProperty.GetMethod.IsStatic, Is.True);
+        Assert.That(sqrt2Property.GetMethod.IsStatic, Is.True);
         
-        Assert.Null(piProperty.SetMethod);
-        Assert.Null(eProperty.SetMethod);
-        Assert.Null(sqrt2Property.SetMethod);
+        Assert.That(piProperty.SetMethod, Is.Null);
+        Assert.That(eProperty.SetMethod, Is.Null);
+        Assert.That(sqrt2Property.SetMethod, Is.Null);
     }
 
-    [Fact]
+    [Test]
     public void Constants_ShouldResistBasicMemoryScanning()
     {
         // Get the actual constant values
@@ -177,9 +178,9 @@ public class TamperResistanceTests
                 byte[] fieldBytes = BitConverter.GetBytes(fieldValue);
                 
                 // The stored value should not match the actual constant value
-                Assert.False(fieldBytes.SequenceEqual(piBytes));
-                Assert.False(fieldBytes.SequenceEqual(eBytes));
-                Assert.False(fieldBytes.SequenceEqual(sqrt2Bytes));
+                Assert.That(fieldBytes.SequenceEqual(piBytes), Is.False);
+                Assert.That(fieldBytes.SequenceEqual(eBytes), Is.False);
+                Assert.That(fieldBytes.SequenceEqual(sqrt2Bytes), Is.False);
             }
         }
     }

@@ -19,17 +19,8 @@ class Program
 
         Console.WriteLine("🔐 Generating compile-time obfuscated constants...");
 
-        // Generate cryptographically random keys for this build
-        using var rng = RandomNumberGenerator.Create();
-        var keyBytes = new byte[8];
-        rng.GetBytes(keyBytes);
-        long randomKey = BitConverter.ToInt64(keyBytes);
-
-        rng.GetBytes(keyBytes);
-        long sessionKey = BitConverter.ToInt64(keyBytes);
-
         // Define constants to obfuscate
-        var constants = new Dictionary<string, double>
+        var doubleConstants = new Dictionary<string, double>
         {
             ["Pi"] = Math.PI,
             ["E"] = Math.E,
@@ -51,29 +42,35 @@ class Program
         };
 
         // Generate Level 3: Compile-time obfuscated constants
-        GenerateSecureConstants(outputDir, constants, intConstants, decimalConstants, randomKey, sessionKey);
+        GenerateSecureConstants(new(Path.Combine(outputDir, "Constants.Level3.generated.cs")), doubleConstants, intConstants, decimalConstants);
 
         // Generate Level 4: Asymmetric encryption constants  
-        GenerateAsymmetricConstants(outputDir, constants, intConstants, decimalConstants);
+        GenerateAsymmetricConstants(new(Path.Combine(outputDir, "Constants.Level4.generated.cs")), doubleConstants, intConstants, decimalConstants);
 
         Console.WriteLine("✅ All obfuscated constants generated successfully!");
     }
 
-    static void GenerateSecureConstants(string outputDir, 
+    static void GenerateSecureConstants(FileInfo outputFile, 
         Dictionary<string, double> doubleConstants,
         Dictionary<string, int> intConstants, 
-        Dictionary<string, decimal> decimalConstants,
-        long randomKey, long sessionKey)
+        Dictionary<string, decimal> decimalConstants)
     {
+
+        // Generate cryptographically random keys for this build
+        using var rng = RandomNumberGenerator.Create();
+        var keyBytes = new byte[8];
+        rng.GetBytes(keyBytes);
+        long randomKey = BitConverter.ToInt64(keyBytes);
+
         // Generate obfuscated values
         var doubleObfuscated = doubleConstants.ToDictionary(
             kvp => kvp.Key,
-            kvp => ApplyComplexObfuscation((ulong)BitConverter.DoubleToInt64Bits(kvp.Value), randomKey, sessionKey, kvp.Key)
+            kvp => Level3.ApplyComplexObfuscation((ulong)BitConverter.DoubleToInt64Bits(kvp.Value), randomKey, kvp.Key)
         );
 
         var intObfuscated = intConstants.ToDictionary(
             kvp => kvp.Key,
-            kvp => ApplyComplexObfuscation32((uint)kvp.Value, randomKey, sessionKey, kvp.Key)
+            kvp => Level3.ApplyComplexObfuscation32((uint)kvp.Value, randomKey, kvp.Key)
         );
 
         var decimalObfuscated = decimalConstants.ToDictionary(
@@ -81,10 +78,10 @@ class Program
             kvp => {
                 var bits = decimal.GetBits(kvp.Value);
                 return new uint[] {
-                    ApplyComplexObfuscation32((uint)bits[0], randomKey, sessionKey, $"{kvp.Key}_0"),
-                    ApplyComplexObfuscation32((uint)bits[1], randomKey, sessionKey, $"{kvp.Key}_1"),
-                    ApplyComplexObfuscation32((uint)bits[2], randomKey, sessionKey, $"{kvp.Key}_2"),
-                    ApplyComplexObfuscation32((uint)bits[3], randomKey, sessionKey, $"{kvp.Key}_3")
+                    Level3.ApplyComplexObfuscation32((uint)bits[0], randomKey, $"{kvp.Key}_0"),
+                    Level3.ApplyComplexObfuscation32((uint)bits[1], randomKey, $"{kvp.Key}_1"),
+                    Level3.ApplyComplexObfuscation32((uint)bits[2], randomKey, $"{kvp.Key}_2"),
+                    Level3.ApplyComplexObfuscation32((uint)bits[3], randomKey, $"{kvp.Key}_3")
                 };
             }
         );
@@ -113,15 +110,14 @@ class Program
                 }
 
                 private static readonly long _storage;
-                private static readonly long _storageKey = unchecked((long)0x{{randomKey:X16}}L);
-                private static readonly long _sessionKey = unchecked((long)0x{{sessionKey:X16}}L);
-                private const long _pepper = unchecked((long)0xdeadbeefcaffee42);
+                private static readonly long _storageKey = Random.Shared.NextInt64();
+                private const long _pepper = unchecked((long)0x{{randomKey:X16}}L);
 
                 static SecureConstants()
                 {
                     ConstantContainer container = new();
                     var pointer = GCHandle.Alloc(container, GCHandleType.Pinned).AddrOfPinnedObject().ToInt64();
-                    _storage = pointer ^ _storageKey ^ _sessionKey ^ _pepper;
+                    _storage = pointer ^ _storageKey ^ _pepper;
                 }
             """;
 
@@ -129,15 +125,15 @@ class Program
         string doubleAccessors = string.Join("\n\n", doubleConstants.Keys.Select(key => $$"""
                 public static unsafe double {{key}} =>
                     BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
-                        ((ConstantContainer*)(_storage ^ _storageKey ^ _sessionKey ^ _pepper))->{{key}},
-                        _storageKey, _sessionKey, "{{key}}"));
+                        ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->{{key}},
+                        _pepper, "{{key}}"));
             """));
 
         string intAccessors = string.Join("\n\n", intConstants.Keys.Select(key => $$"""
                 public static unsafe int {{key}} =>
                     (int)ReverseComplexObfuscation32(
-                        ((ConstantContainer*)(_storage ^ _storageKey ^ _sessionKey ^ _pepper))->{{key}},
-                        _storageKey, _sessionKey, "{{key}}");
+                        ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->{{key}},
+                        _pepper, "{{key}}");
             """));
 
         string decimalAccessors = string.Join("\n\n", decimalConstants.Keys.Select(key => $$"""
@@ -145,12 +141,12 @@ class Program
                 {
                     get
                     {
-                        var container = (ConstantContainer*)(_storage ^ _storageKey ^ _sessionKey ^ _pepper);
+                        var container = (ConstantContainer*)(_storage ^ _storageKey ^ _pepper);
                         int[] bits = [
-                            (int)ReverseComplexObfuscation32(container->{{key}}_Lo, _storageKey, _sessionKey, "{{key}}_0"),
-                            (int)ReverseComplexObfuscation32(container->{{key}}_Mid, _storageKey, _sessionKey, "{{key}}_1"),
-                            (int)ReverseComplexObfuscation32(container->{{key}}_Hi, _storageKey, _sessionKey, "{{key}}_2"),
-                            (int)ReverseComplexObfuscation32(container->{{key}}_Flags, _storageKey, _sessionKey, "{{key}}_3")
+                            (int)ReverseComplexObfuscation32(container->{{key}}_Lo, _pepper, "{{key}}_0"),
+                            (int)ReverseComplexObfuscation32(container->{{key}}_Mid, _pepper, "{{key}}_1"),
+                            (int)ReverseComplexObfuscation32(container->{{key}}_Hi, _pepper, "{{key}}_2"),
+                            (int)ReverseComplexObfuscation32(container->{{key}}_Flags, _pepper, "{{key}}_3")
                         ];
                         return new decimal(bits);
                     }
@@ -167,227 +163,28 @@ class Program
             """;
 
         // Generate obfuscation/deobfuscation methods
-        content += """
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                private static unsafe ulong ReverseComplexObfuscation(ulong obfuscated, long key1, long key2, string identifier)
-                {
-                    // Reverse the complex obfuscation applied at compile time
-                    uint identifierHash = (uint)identifier.GetHashCode();
-                    ulong keyMix = (ulong)(key1 ^ key2 ^ identifierHash);
-                    
-                    // Step 1: Reverse XOR
-                    ulong step1 = obfuscated ^ keyMix ^ 0xABCDEF0123456789UL;
-                    
-                    // Step 2: Reverse bit rotation (rotate right to undo left rotation)
-                    int rotation = (int)(identifierHash % 31) + 1; // 1-31
-                    ulong step2 = (step1 >> rotation) | (step1 << (64 - rotation));
-                    
-                    // Step 3: Reverse byte scrambling using unsafe pointer magic
-                    byte pattern = (byte)(identifierHash % 8);
-                    if (pattern == 0) return step2; // no scrambling
-                    
-                    byte* ptr = (byte*)&step2;
-                    ulong result;
-                    byte* resultPtr = (byte*)&result;
-                    
-                    switch (pattern)
-                    {
-                        case 1: // reverse: 3,1,7,0,4,6,2,5 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[3]; resultPtr[1] = ptr[1]; resultPtr[2] = ptr[6]; resultPtr[3] = ptr[0];
-                            resultPtr[4] = ptr[4]; resultPtr[5] = ptr[7]; resultPtr[6] = ptr[5]; resultPtr[7] = ptr[2];
-                            break;
-                        case 2: // reverse: 5,2,0,6,3,7,1,4 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[2]; resultPtr[1] = ptr[6]; resultPtr[2] = ptr[1]; resultPtr[3] = ptr[4];
-                            resultPtr[4] = ptr[7]; resultPtr[5] = ptr[0]; resultPtr[6] = ptr[3]; resultPtr[7] = ptr[5];
-                            break;
-                        case 3: // reverse: 6,3,1,5,7,0,4,2 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[5]; resultPtr[1] = ptr[2]; resultPtr[2] = ptr[7]; resultPtr[3] = ptr[1];
-                            resultPtr[4] = ptr[6]; resultPtr[5] = ptr[3]; resultPtr[6] = ptr[0]; resultPtr[7] = ptr[4];
-                            break;
-                        case 4: // reverse: 2,6,4,1,0,5,7,3 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[4]; resultPtr[1] = ptr[3]; resultPtr[2] = ptr[0]; resultPtr[3] = ptr[7];
-                            resultPtr[4] = ptr[2]; resultPtr[5] = ptr[5]; resultPtr[6] = ptr[1]; resultPtr[7] = ptr[6];
-                            break;
-                        case 5: // reverse: 1,7,5,3,6,2,0,4 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[6]; resultPtr[1] = ptr[0]; resultPtr[2] = ptr[5]; resultPtr[3] = ptr[3];
-                            resultPtr[4] = ptr[7]; resultPtr[5] = ptr[2]; resultPtr[6] = ptr[4]; resultPtr[7] = ptr[1];
-                            break;
-                        case 6: // reverse: 4,0,6,2,1,3,5,7 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[1]; resultPtr[1] = ptr[4]; resultPtr[2] = ptr[6]; resultPtr[3] = ptr[5];
-                            resultPtr[4] = ptr[0]; resultPtr[5] = ptr[2]; resultPtr[6] = ptr[7]; resultPtr[7] = ptr[3];
-                            break;
-                        case 7: // reverse: 7,5,2,6,1,4,3,0 -> 0,1,2,3,4,5,6,7
-                            resultPtr[0] = ptr[7]; resultPtr[1] = ptr[5]; resultPtr[2] = ptr[2]; resultPtr[3] = ptr[6];
-                            resultPtr[4] = ptr[1]; resultPtr[5] = ptr[4]; resultPtr[6] = ptr[3]; resultPtr[7] = ptr[0];
-                            break;
-                        default:
-                            return step2;
-                    }
-                    return result;
-                }
-
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                private static unsafe uint ReverseComplexObfuscation32(uint obfuscated, long key1, long key2, string identifier)
-                {
-                    uint identifierHash = (uint)identifier.GetHashCode();
-                    uint keyMix = (uint)((key1 ^ key2) ^ identifierHash);
-                    
-                    uint step1 = obfuscated ^ keyMix ^ 0x12345678U;
-                    int rotation = (int)(identifierHash % 15) + 1; // 1-15
-                    uint step2 = (step1 >> rotation) | (step1 << (32 - rotation));
-                    
-                    byte pattern = (byte)(identifierHash % 4);
-                    if (pattern == 0) return step2;
-                    
-                    byte* ptr = (byte*)&step2;
-                    uint result;
-                    byte* resultPtr = (byte*)&result;
-                    
-                    switch (pattern)
-                    {
-                        case 1: // reverse: 3,1,0,2 -> 0,1,2,3
-                            resultPtr[0] = ptr[2]; resultPtr[1] = ptr[1]; resultPtr[2] = ptr[3]; resultPtr[3] = ptr[0];
-                            break;
-                        case 2: // reverse: 2,0,3,1 -> 0,1,2,3
-                            resultPtr[0] = ptr[1]; resultPtr[1] = ptr[3]; resultPtr[2] = ptr[0]; resultPtr[3] = ptr[2];
-                            break;
-                        case 3: // reverse: 1,2,3,0 -> 0,1,2,3
-                            resultPtr[0] = ptr[3]; resultPtr[1] = ptr[0]; resultPtr[2] = ptr[1]; resultPtr[3] = ptr[2];
-                            break;
-                        default:
-                            return step2;
-                    }
-                    return result;
-                }
-            }
-            """;
+        content += File.ReadAllText("../ConstantObfuscator/Level3.Backward.cs");
+        
+        content += "}";
 
         // Write the generated file
-        string outputFile = Path.Combine(outputDir, "SecureConstants.generated.cs");
-        File.WriteAllText(outputFile, content);
-        
-        Console.WriteLine($"Generated: {outputFile}");
+        File.WriteAllText(outputFile.FullName, content);
+        Console.WriteLine($"Generated: {outputFile.Name}");
     }
 
-
-    static unsafe ulong ApplyComplexObfuscation(ulong value, long key1, long key2, string identifier)
-    {
-        uint identifierHash = (uint)identifier.GetHashCode();
-        ulong keyMix = (ulong)(key1 ^ key2 ^ identifierHash);
-
-        // Step 1: Byte scrambling based on identifier hash using unsafe pointers
-        byte pattern = (byte)(identifierHash % 8);
-        ulong scrambled;
-        
-        if (pattern == 0)
-        {
-            scrambled = value; // no scrambling
-        }
-        else
-        {
-            byte* srcPtr = (byte*)&value;
-            byte* destPtr = (byte*)&scrambled;
-            
-            switch (pattern)
-            {
-                case 1: // scramble: 0,1,2,3,4,5,6,7 -> 3,1,7,0,4,6,2,5
-                    destPtr[0] = srcPtr[3]; destPtr[1] = srcPtr[1]; destPtr[2] = srcPtr[7]; destPtr[3] = srcPtr[0];
-                    destPtr[4] = srcPtr[4]; destPtr[5] = srcPtr[6]; destPtr[6] = srcPtr[2]; destPtr[7] = srcPtr[5];
-                    break;
-                case 2:
-                    destPtr[0] = srcPtr[5]; destPtr[1] = srcPtr[2]; destPtr[2] = srcPtr[0]; destPtr[3] = srcPtr[6];
-                    destPtr[4] = srcPtr[3]; destPtr[5] = srcPtr[7]; destPtr[6] = srcPtr[1]; destPtr[7] = srcPtr[4];
-                    break;
-                case 3:
-                    destPtr[0] = srcPtr[6]; destPtr[1] = srcPtr[3]; destPtr[2] = srcPtr[1]; destPtr[3] = srcPtr[5];
-                    destPtr[4] = srcPtr[7]; destPtr[5] = srcPtr[0]; destPtr[6] = srcPtr[4]; destPtr[7] = srcPtr[2];
-                    break;
-                case 4:
-                    destPtr[0] = srcPtr[2]; destPtr[1] = srcPtr[6]; destPtr[2] = srcPtr[4]; destPtr[3] = srcPtr[1];
-                    destPtr[4] = srcPtr[0]; destPtr[5] = srcPtr[5]; destPtr[6] = srcPtr[7]; destPtr[7] = srcPtr[3];
-                    break;
-                case 5:
-                    destPtr[0] = srcPtr[1]; destPtr[1] = srcPtr[7]; destPtr[2] = srcPtr[5]; destPtr[3] = srcPtr[3];
-                    destPtr[4] = srcPtr[6]; destPtr[5] = srcPtr[2]; destPtr[6] = srcPtr[0]; destPtr[7] = srcPtr[4];
-                    break;
-                case 6:
-                    destPtr[0] = srcPtr[4]; destPtr[1] = srcPtr[0]; destPtr[2] = srcPtr[6]; destPtr[3] = srcPtr[2];
-                    destPtr[4] = srcPtr[1]; destPtr[5] = srcPtr[3]; destPtr[6] = srcPtr[5]; destPtr[7] = srcPtr[7];
-                    break;
-                case 7:
-                    destPtr[0] = srcPtr[7]; destPtr[1] = srcPtr[4]; destPtr[2] = srcPtr[2]; destPtr[3] = srcPtr[6];
-                    destPtr[4] = srcPtr[5]; destPtr[5] = srcPtr[1]; destPtr[6] = srcPtr[3]; destPtr[7] = srcPtr[0];
-                    break;
-                default:
-                    scrambled = value;
-                    break;
-            }
-        }
-
-        // Step 2: Bit rotation based on identifier
-        int rotation = (int)(identifierHash % 31) + 1; // 1-31 bit rotation
-        ulong rotated = (scrambled << rotation) | (scrambled >> (64 - rotation));
-
-        // Step 3: XOR with keys and magic constant
-        return rotated ^ keyMix ^ 0xABCDEF0123456789UL;
-    }
-
-    static unsafe uint ApplyComplexObfuscation32(uint value, long key1, long key2, string identifier)
-    {
-        uint identifierHash = (uint)identifier.GetHashCode();
-        uint keyMix = (uint)((key1 ^ key2) ^ identifierHash);
-
-        // Byte scrambling for 32-bit values using unsafe pointers
-        byte pattern = (byte)(identifierHash % 4);
-        uint scrambled;
-        
-        if (pattern == 0)
-        {
-            scrambled = value;
-        }
-        else
-        {
-            byte* srcPtr = (byte*)&value;
-            byte* destPtr = (byte*)&scrambled;
-            
-            switch (pattern)
-            {
-                case 1: // scramble: 0,1,2,3 -> 3,1,0,2
-                    destPtr[0] = srcPtr[3]; destPtr[1] = srcPtr[1]; destPtr[2] = srcPtr[0]; destPtr[3] = srcPtr[2];
-                    break;
-                case 2: // scramble: 0,1,2,3 -> 2,0,3,1
-                    destPtr[0] = srcPtr[2]; destPtr[1] = srcPtr[0]; destPtr[2] = srcPtr[3]; destPtr[3] = srcPtr[1];
-                    break;
-                case 3: // scramble: 0,1,2,3 -> 1,2,3,0
-                    destPtr[0] = srcPtr[1]; destPtr[1] = srcPtr[2]; destPtr[2] = srcPtr[3]; destPtr[3] = srcPtr[0];
-                    break;
-                default:
-                    scrambled = value;
-                    break;
-            }
-        }
-
-        // Bit rotation
-        int rotation = (int)(identifierHash % 15) + 1; // 1-15 bit rotation
-        uint rotated = (scrambled << rotation) | (scrambled >> (32 - rotation));
-
-        return rotated ^ keyMix ^ 0x12345678U;
-    }
-
-    static void GenerateAsymmetricConstants(string outputDir, 
+    static void GenerateAsymmetricConstants(FileInfo outputFile, 
         Dictionary<string, double> doubleConstants,
         Dictionary<string, int> intConstants, 
         Dictionary<string, decimal> decimalConstants)
     {
-        Console.WriteLine("🔐 Generating Level 4: Asymmetric encryption constants...");
+        Console.WriteLine("🔐 Generating Level 4: One-way decryption constants...");
 
-        // Generate RSA key pair (private key only exists during compilation!)
+        // Generate RSA key pair (private key stored for runtime decryption)
         using var rsa = RSA.Create(2048);
         var publicKey = rsa.ExportRSAPublicKey();
-        var privateKey = rsa.ExportRSAPrivateKey(); // This will be discarded after compilation!
+        var privateKey = rsa.ExportRSAPrivateKey(); // Stored for runtime decryption
 
-        // Encrypt all constants
+        // Encrypt all constants with public key (can only be decrypted with private key)
         var encryptedConstants = new Dictionary<string, byte[]>();
         
         foreach (var kvp in doubleConstants)
@@ -431,8 +228,8 @@ class Program
         }
 
         string content = $$"""
-            // Level 4: Asymmetric Encryption Constants
-            // Private key used at compile-time ONLY - not stored in binary!
+            // Level 4: One-Way Decryption Constants
+            // Private key stored for runtime decryption (one-way only)
             // This file is auto-generated by ConstantObfuscator at compile time
             // DO NOT EDIT MANUALLY - Changes will be overwritten
 
@@ -454,10 +251,11 @@ class Program
             """))}}
                 }
 
-                // Only public key stored - private key existed only during compilation!
-                private static readonly byte[] _publicKeyBytes = new byte[]
+                // Only private key stored for one-way decryption
+                // Public key is NOT stored to prevent re-encryption attacks
+                private static readonly byte[] _privateKeyBytes = new byte[]
                 {
-                    {{FormatByteArray(publicKey)}}
+                    {{FormatByteArray(privateKey)}}
                 };
 
                 private static readonly long _storage;
@@ -470,11 +268,11 @@ class Program
                     var pointer = GCHandle.Alloc(container, GCHandleType.Pinned).AddrOfPinnedObject().ToInt64();
                     _storage = pointer ^ _pepper;
                     
-                    // Create RSA instance with public key only
+                    // Create RSA instance with private key for decryption
                     try
                     {
                         _rsa = RSA.Create();
-                        _rsa.ImportRSAPublicKey(_publicKeyBytes, out _);
+                        _rsa.ImportRSAPrivateKey(_privateKeyBytes, out _);
                     }
                     catch
                     {
@@ -487,9 +285,18 @@ class Program
                     {
                         get
                         {
-                            // SECURITY: Cannot decrypt without private key!
-                            // Private key was discarded after compilation
-                            throw new CryptographicException("Constants encrypted with compile-time private key cannot be decrypted at runtime. This is intentional for maximum security.");
+                            if (_rsa == null)
+                                throw new CryptographicException("RSA instance not available for decryption.");
+                            
+                            try
+                            {
+                                byte[] decryptedBytes = _rsa.Decrypt(EncryptedContainer.{{key}}, RSAEncryptionPadding.Pkcs1);
+                                return BitConverter.ToDouble(decryptedBytes, 0);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new CryptographicException($"Failed to decrypt constant {{key}}: {ex.Message}", ex);
+                            }
                         }
                     }
             """))}}
@@ -499,7 +306,18 @@ class Program
                     {
                         get
                         {
-                            throw new CryptographicException("Constants encrypted with compile-time private key cannot be decrypted at runtime. This is intentional for maximum security.");
+                            if (_rsa == null)
+                                throw new CryptographicException("RSA instance not available for decryption.");
+                                
+                            try
+                            {
+                                byte[] decryptedBytes = _rsa.Decrypt(EncryptedContainer.{{key}}, RSAEncryptionPadding.Pkcs1);
+                                return BitConverter.ToInt32(decryptedBytes, 0);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new CryptographicException($"Failed to decrypt constant {{key}}: {ex.Message}", ex);
+                            }
                         }
                     }
             """))}}
@@ -509,35 +327,46 @@ class Program
                     {
                         get
                         {
-                            throw new CryptographicException("Constants encrypted with compile-time private key cannot be decrypted at runtime. This is intentional for maximum security.");
+                            if (_rsa == null)
+                                throw new CryptographicException("RSA instance not available for decryption.");
+                                
+                            try
+                            {
+                                byte[] decryptedBytes = _rsa.Decrypt(EncryptedContainer.{{key}}, RSAEncryptionPadding.Pkcs1);
+                                int[] bits = new int[4];
+                                Buffer.BlockCopy(decryptedBytes, 0, bits, 0, 16);
+                                return new decimal(bits);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new CryptographicException($"Failed to decrypt constant {{key}}: {ex.Message}", ex);
+                            }
                         }
                     }
             """))}}
 
                 /// <summary>
-                /// Demonstrates that constants are truly immutable - even with full source code access,
-                /// the values cannot be recovered without the compile-time private key.
+                /// One-way decryption: Constants can be decrypted at runtime but the process is irreversible.
+                /// Values are encrypted at compile-time and can only be accessed through decryption.
                 /// </summary>
                 public static string GetSecurityInfo()
                 {
-                    return $"Level 4 Security: Constants encrypted with RSA-2048. " +
-                           $"Private key existed only during compilation and was discarded. " +
-                           $"Public key size: {_publicKeyBytes.Length} bytes. " +
-                           $"Decryption impossible without private key.";
+                    return $"Level 4 Security: One-way decryption with RSA-2048. " +
+                           $"Constants encrypted at compile-time, decryptable at runtime. " +
+                           $"Public key NOT stored (prevents re-encryption attacks). " +
+                           $"Private key size: {_privateKeyBytes.Length} bytes. " +
+                           $"Decryption is one-way only - values cannot be re-encrypted.";
                 }
             }
             """;
 
         // Write the generated file
-        string outputFile = Path.Combine(outputDir, "CryptoConstants.generated.cs");
-        File.WriteAllText(outputFile, content);
+        File.WriteAllText(outputFile.FullName, content);
         
-        Console.WriteLine($"Generated: {outputFile}");
-        Console.WriteLine($"🔥 PRIVATE KEY DISCARDED - exists only during compilation!");
-        Console.WriteLine($"📖 Public key stored ({publicKey.Length} bytes) - cannot decrypt data");
-
-        // Explicitly clear sensitive data
-        Array.Clear(privateKey, 0, privateKey.Length);
-        Console.WriteLine("🗑️  Private key securely cleared from memory");
+        Console.WriteLine($"Generated: {outputFile.Name}");
+        Console.WriteLine($"🔑 PRIVATE KEY ONLY - enables one-way runtime decryption!");
+        Console.WriteLine($"🚫 Public key NOT stored - prevents re-encryption attacks");
+        Console.WriteLine($"🔐 Private key stored ({privateKey.Length} bytes) - allows decryption only");
+        Console.WriteLine("💡 Constants can be decrypted at runtime but cannot be re-encrypted");
     }
 }

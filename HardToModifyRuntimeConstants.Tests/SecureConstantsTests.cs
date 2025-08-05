@@ -3,28 +3,29 @@ using System.Reflection;
 
 namespace HardToModifyRuntimeConstants.Tests;
 
+[TestFixture]
 public class SecureConstantsTests
 {
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldReturnCorrectMathematicalValues()
     {
-        Assert.Equal(Math.PI, SecureConstants.Pi, precision: 15);
-        Assert.Equal(Math.E, SecureConstants.E, precision: 15);
-        Assert.Equal(Math.Sqrt(2), SecureConstants.Sqrt2, precision: 15);
+        Assert.That(SecureConstants.Pi, Is.EqualTo(Math.PI).Within(1e-15));
+        Assert.That(SecureConstants.E, Is.EqualTo(Math.E).Within(1e-15));
+        Assert.That(SecureConstants.Sqrt2, Is.EqualTo(Math.Sqrt(2)).Within(1e-15));
         
         // Golden ratio: (1 + √5) / 2
         double expectedGoldenRatio = (1 + Math.Sqrt(5)) / 2;
-        Assert.Equal(expectedGoldenRatio, SecureConstants.GoldenRatio, precision: 15);
+        Assert.That(SecureConstants.GoldenRatio, Is.EqualTo(expectedGoldenRatio).Within(1e-15));
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldReturnCorrectIntegerValues()
     {
-        Assert.Equal(int.MaxValue, SecureConstants.MaxInt32);
-        Assert.Equal(42, SecureConstants.Answer);
+        Assert.That(SecureConstants.MaxInt32, Is.EqualTo(int.MaxValue));
+        Assert.That(SecureConstants.Answer, Is.EqualTo(42));
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldReturnCorrectDecimalValues()
     {
         // Test decimal constants with high precision
@@ -32,24 +33,24 @@ public class SecureConstantsTests
         decimal expectedE = 2.7182818284590452353602874714m;
         decimal expectedOnePercent = 0.01m;
 
-        Assert.Equal(expectedPi, SecureConstants.PiDecimal);
-        Assert.Equal(expectedE, SecureConstants.EDecimal);
-        Assert.Equal(expectedOnePercent, SecureConstants.OnePercent);
+        Assert.That(SecureConstants.PiDecimal, Is.EqualTo(expectedPi));
+        Assert.That(SecureConstants.EDecimal, Is.EqualTo(expectedE));
+        Assert.That(SecureConstants.OnePercent, Is.EqualTo(expectedOnePercent));
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldBeConsistent()
     {
         // Test multiple calls return same values
         for (int i = 0; i < 100; i++)
         {
-            Assert.Equal(Math.PI, SecureConstants.Pi, precision: 15);
-            Assert.Equal(42, SecureConstants.Answer);
-            Assert.Equal(0.01m, SecureConstants.OnePercent);
+            Assert.That(SecureConstants.Pi, Is.EqualTo(Math.PI).Within(1e-15));
+            Assert.That(SecureConstants.Answer, Is.EqualTo(42));
+            Assert.That(SecureConstants.OnePercent, Is.EqualTo(0.01m));
         }
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldNotContainPlainTextValues()
     {
         // This test verifies that the generated constants don't contain plain text values
@@ -58,21 +59,21 @@ public class SecureConstantsTests
         
         // Check that we have obfuscated storage
         var containerFields = fields.Where(f => f.FieldType.Name.Contains("ConstantContainer")).ToArray();
-        Assert.NotEmpty(containerFields);
+        Assert.That(containerFields, Is.Not.Empty);
         
         // The container should contain obfuscated values only
         var containerType = constantsType.GetNestedTypes(BindingFlags.NonPublic).FirstOrDefault(t => t.Name.Contains("ConstantContainer"));
-        Assert.NotNull(containerType);
+        Assert.That(containerType, Is.Not.Null);
         
         var containerFields2 = containerType.GetFields(BindingFlags.Public | BindingFlags.Instance);
         foreach (var field in containerFields2)
         {
             // All fields should be ulong or uint (obfuscated values)
-            Assert.True(field.FieldType == typeof(ulong) || field.FieldType == typeof(uint));
+            Assert.That(field.FieldType == typeof(ulong) || field.FieldType == typeof(uint), Is.True);
         }
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldHaveUniqueObfuscatedValues()
     {
         // Verify that different constants have different obfuscated values
@@ -80,7 +81,7 @@ public class SecureConstantsTests
         
         Type constantsType = typeof(SecureConstants);
         var containerType = constantsType.GetNestedTypes(BindingFlags.NonPublic).FirstOrDefault(t => t.Name.Contains("ConstantContainer"));
-        Assert.NotNull(containerType);
+        Assert.That(containerType, Is.Not.Null);
         
         var instance = Activator.CreateInstance(containerType);
         var fields = containerType.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -89,18 +90,18 @@ public class SecureConstantsTests
         foreach (var field in fields)
         {
             var value = field.GetValue(instance);
-            Assert.NotNull(value);
+            Assert.That(value, Is.Not.Null);
             
             // Ensure this value is unique (no duplicates)
-            Assert.DoesNotContain<object>(value, values);
+            Assert.That(values, Does.Not.Contain(value));
             values.Add(value);
         }
         
         // We should have multiple unique obfuscated values
-        Assert.True(values.Count >= 10); // Pi, E, Sqrt2, GoldenRatio, MaxInt32, Answer + decimal parts
+        Assert.That(values.Count, Is.GreaterThanOrEqualTo(10)); // Pi, E, Sqrt2, GoldenRatio, MaxInt32, Answer + decimal parts
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldHaveRandomizedKeys()
     {
         // Verify that the keys are randomized and not hardcoded
@@ -108,25 +109,25 @@ public class SecureConstantsTests
         var storageKeyField = constantsType.GetField("_storageKey", BindingFlags.NonPublic | BindingFlags.Static);
         var sessionKeyField = constantsType.GetField("_sessionKey", BindingFlags.NonPublic | BindingFlags.Static);
         
-        Assert.NotNull(storageKeyField);
-        Assert.NotNull(sessionKeyField);
+        Assert.That(storageKeyField, Is.Not.Null);
+        Assert.That(sessionKeyField, Is.Not.Null);
         
         long storageKey = (long)storageKeyField.GetValue(null);
         long sessionKey = (long)sessionKeyField.GetValue(null);
         
         // Keys should not be zero (extremely unlikely with cryptographic randomness)
-        Assert.NotEqual(0L, storageKey);
-        Assert.NotEqual(0L, sessionKey);
+        Assert.That(storageKey, Is.Not.EqualTo(0L));
+        Assert.That(sessionKey, Is.Not.EqualTo(0L));
         
         // Keys should be different from each other
-        Assert.NotEqual(storageKey, sessionKey);
+        Assert.That(sessionKey, Is.Not.EqualTo(storageKey));
         
         // Keys should not be simple patterns
-        Assert.NotEqual(0x1234567812345678L, storageKey);
-        Assert.NotEqual(0xABCDEFABCDEFABCDL, sessionKey);
+        Assert.That(storageKey, Is.Not.EqualTo(0x1234567812345678L));
+        Assert.That(sessionKey, Is.Not.EqualTo(0xABCDEFABCDEFABCDL));
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldMaintainConsistencyUnderConcurrentAccess()
     {
         const int numTasks = 10;
@@ -163,15 +164,15 @@ public class SecureConstantsTests
         {
             for (int i = 0; i < taskResults.Length; i += 4)
             {
-                Assert.Equal(expectedPi, taskResults[i], precision: 15);
-                Assert.Equal(expectedE, taskResults[i + 1], precision: 15);
-                Assert.Equal(expectedSqrt2, taskResults[i + 2], precision: 15);
-                Assert.Equal(expectedGoldenRatio, taskResults[i + 3], precision: 15);
+                Assert.That(taskResults[i], Is.EqualTo(expectedPi).Within(1e-15));
+                Assert.That(taskResults[i + 1], Is.EqualTo(expectedE).Within(1e-15));
+                Assert.That(taskResults[i + 2], Is.EqualTo(expectedSqrt2).Within(1e-15));
+                Assert.That(taskResults[i + 3], Is.EqualTo(expectedGoldenRatio).Within(1e-15));
             }
         }
     }
 
-    [Fact]
+    [Test]
     public void SecureConstants_ShouldHaveProperPrecision()
     {
         // Test precision against known high-precision values
@@ -180,9 +181,9 @@ public class SecureConstantsTests
         const double HIGH_PRECISION_SQRT2 = 1.4142135623730951;
         const double HIGH_PRECISION_GOLDEN_RATIO = 1.6180339887498948;
         
-        Assert.Equal(HIGH_PRECISION_PI, SecureConstants.Pi, precision: 15);
-        Assert.Equal(HIGH_PRECISION_E, SecureConstants.E, precision: 15);
-        Assert.Equal(HIGH_PRECISION_SQRT2, SecureConstants.Sqrt2, precision: 15);
-        Assert.Equal(HIGH_PRECISION_GOLDEN_RATIO, SecureConstants.GoldenRatio, precision: 15);
+        Assert.That(SecureConstants.Pi, Is.EqualTo(HIGH_PRECISION_PI).Within(1e-15));
+        Assert.That(SecureConstants.E, Is.EqualTo(HIGH_PRECISION_E).Within(1e-15));
+        Assert.That(SecureConstants.Sqrt2, Is.EqualTo(HIGH_PRECISION_SQRT2).Within(1e-15));
+        Assert.That(SecureConstants.GoldenRatio, Is.EqualTo(HIGH_PRECISION_GOLDEN_RATIO).Within(1e-15));
     }
 }

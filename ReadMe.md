@@ -5,7 +5,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/Hawkynt/HardToModifyRuntimeConstants?branch=main)![Activity](https://img.shields.io/github/commit-activity/y/Hawkynt/HardToModifyRuntimeConstants?branch=main)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/commits/main)
 [![Tests](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/tests.yml/badge.svg)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/tests.yml)
 
-A C# proof-of-concept for storing constants that are extremely difficult to tamper with. 🛡️
+> A C# proof-of-concept for storing constants that are extremely difficult to tamper with.
 
 ## Overview
 
@@ -37,7 +37,7 @@ The source employs multiple layers of protection across **four different securit
 - Additional integer and mathematical constants
 - **⚠️ VULNERABILITY**: Original values visible in executable
 
-### 🔐 Level 3: Compile-Time Obfuscation (MOST SECURE)
+### 🔐 Level 3: Compile-Time Obfuscation
 Instead of obfuscating at runtime, constants are obfuscated **during compilation**:
 
 **🏗️ Build-Time Process:**
@@ -54,6 +54,14 @@ Instead of obfuscating at runtime, constants are obfuscated **during compilation
 - Only **deobfuscation logic** exists in the binary
 - Constants stored as seemingly random hex values (e.g., `0x01B73FC075550D0EUL`)
 - Impossible to determine original values without knowing the build-specific keys
+
+### 🛡️ Level 4: Asymmetric Encryption (One-Way Decryption)
+
+1. **Prebuild tool** generates RSA-2048 key pair
+2. **Public key encrypts** all constants at compile-time  
+3. **Only private key stored** in executable (public key discarded)
+4. **Runtime decryption** using stored private key
+5. **Re-encryption prevention** - no public key available for attackers
 
 ### High-Precision Storage
 
@@ -80,7 +88,7 @@ The implementation uses several advanced C# features across different security l
 
 **Pointer Obfuscation**: The pointer to the struct is obfuscated using multiple XOR operations.
 
-### 🔐 Level 3: Compile-Time Obfuscation Features
+### 🔐 Level 3 & 4: Compile-Time Obfuscation/Encryption Features
 **Build Integration**: MSBuild pre-build event automatically runs the obfuscator tool.
 
 **Cryptographic Randomness**: Uses `RandomNumberGenerator.Create()` for secure key generation.
@@ -121,7 +129,7 @@ To modify constants at runtime, an attacker would need to:
 
 **⚠️ CRITICAL VULNERABILITY**: Original values and transformation logic visible in executable binary!
 
-### 🔐 Level 3: Compile-Time Obfuscation (MOST SECURE)
+### 🛡️ Level 3 & 4: Compile-Time Obfuscation/Decryption
 
 **Against Binary Analysis:**
 An attacker analyzing the compiled executable sees:
@@ -130,10 +138,17 @@ public readonly ulong Pi = 0x01B73FC075550D0EUL;  // Meaningless without keys
 private static readonly long _storageKey = 0x2DE2A33664750458L;  // Changes every build
 ```
 - ✅ **No original values** (3.14159...) anywhere in binary
-- ✅ **No obfuscation algorithms** - only deobfuscation
 - ✅ **Build-specific keys** - different for every compilation
-- ✅ **Complex multi-layer transformations** - nearly impossible to reverse without keys
 
+- **Level 3:**
+   - ✅ **No obfuscation algorithms** - only deobfuscation
+   - ✅ **Complex multi-layer transformations** - nearly impossible to reverse without keys
+- **Level 4:**
+   - ✅ **RSA-2048 encryption** - cryptographically secure storage
+   - ✅ **Runtime decryption capability** - constants are accessible when needed
+   - ✅ **One-way operation** - values cannot be re-encrypted (no public key stored)
+   - ✅ **Tamper evidence** - modified encrypted data will fail decryption
+   
 **Against Runtime Tampering:**
 Even with reflection access, an attacker would need to:
 1. Reverse-engineer the deobfuscation algorithm
@@ -151,45 +166,12 @@ Impossible without:
 
 **💡 Result**: Constants are effectively **immutable at the binary level**.
 
-### 🛡️ Level 4: Asymmetric Encryption (ULTIMATE SECURITY)
-
-The highest security level using **RSA-2048 asymmetric encryption**:
-
-**🔐 Compile-Time Process:**
-1. **RSA key pair generation** with 2048-bit strength
-2. **All constants encrypted** with the private key
-3. **Private key immediately discarded** after compilation
-4. Only **public key stored** in binary (cannot decrypt)
-
-**🚫 Runtime Behavior (Intentional):**
-```csharp
-double pi = CryptoConstants.Pi;  // throws CryptographicException
-```
-- **All property access throws exceptions** by design
-- Demonstrates **ultimate immutability** - values are permanently sealed
-- Even with full source code access, **decryption is impossible**
-
-**🔒 Security Guarantees:**
-- ✅ **Perfect forward secrecy** - private key never stored
-- ✅ **Cryptographically impossible** to recover values  
-- ✅ **Proof of concept** for maximum theoretical security
-- ✅ **2048-bit RSA encryption** - computationally infeasible to break
-
-**💡 Use Case**: Demonstration that constants can be made **truly immutable** - even developers cannot access them after compilation.
-
 ## Limitations
 
 - Slight performance overhead from deobfuscation (mitigated by JIT inlining)
 - Slightly increased memory usage from storing both obfuscated and random values
 - Not suitable for constants that need to be compile-time constants for the C# compiler
-
-## Future Enhancements
-
-Potential improvements could include:
-- Custom attributes to automatically apply this technique to constants
-- Integration with code generation tools
-- Additional obfuscation layers for even greater security
-- Support for other numeric types beyond decimal and double
+- Even while the JIT _tries_ to bake-in constants after first resolution it may still be possible to tamper the constant getting method to just return something else
 
 ## 🏗️ Build and Test
 
@@ -203,17 +185,14 @@ Potential improvements could include:
 git clone <repository-url>
 cd HardToModifyRuntimeConstants
 
+# Build the obfuscator tool
+dotnet build ConstantObfuscator/ConstantObfuscator.csproj
+
 # Build the main project (automatically runs obfuscator)
 dotnet build HardToModifyRuntimeConstants/HardToModifyRuntimeConstants.csproj
 
-# Build the test project (NUnit)
-dotnet build ObfuscationTest/ObfuscationTest.csproj
-
 # Build the performance benchmarks (BenchmarkDotNet)
 dotnet build PerformanceBenchmarks/PerformanceBenchmarks.csproj
-
-# Build the obfuscator tool
-dotnet build ConstantObfuscator/ConstantObfuscator.csproj
 ```
 
 ### Running the Application
@@ -223,29 +202,14 @@ dotnet run --project HardToModifyRuntimeConstants/HardToModifyRuntimeConstants.c
 
 # Run performance benchmarks (BenchmarkDotNet)
 dotnet run --project PerformanceBenchmarks/PerformanceBenchmarks.csproj --configuration Release
-
-# Manually generate obfuscated constants
-dotnet run --project ConstantObfuscator/ConstantObfuscator.csproj -- HardToModifyRuntimeConstants
-```
-
-### Running Tests
-```bash
-# Run all NUnit tests
-dotnet test ObfuscationTest/ObfuscationTest.csproj
-
-# Run tests with detailed output
-dotnet test ObfuscationTest/ObfuscationTest.csproj --verbosity normal
-
-# Run tests with coverage (requires coverlet)
-dotnet test ObfuscationTest/ObfuscationTest.csproj --collect:"XPlat Code Coverage"
 ```
 
 ### Test Categories
 
-**🧪 NUnit Test Suite** (`ObfuscationTest`):
+**🧪 NUnit Test Suite** (`HardToModifyRuntimeConstants.Tests`):
 - **Obfuscation Pattern Tests**: Validates scrambling/unscrambling algorithms (7 patterns × multiple test cases)
 - **SecureConstants Tests**: Level 3 compile-time obfuscation correctness validation
-- **CryptoConstants Tests**: Level 4 asymmetric encryption exception handling
+- **CryptoConstants Tests**: Level 4 one-way decryption functionality validation
 - **Random Value Testing**: Tests patterns with 10 random values per pattern
 
 **⚡ BenchmarkDotNet Performance Suite** (`PerformanceBenchmarks`):
@@ -260,32 +224,30 @@ dotnet test ObfuscationTest/ObfuscationTest.csproj --collect:"XPlat Code Coverag
 Performance varies by security level:
 
 ### 🔒 Level 1: Basic (Fastest)
-- Property access: Virtually no overhead (~0 cycles)
+- Property access: Virtually no overhead
 - Memory usage: Minimal - just pointer obfuscation
 - JIT optimization: Full inlining possible
 
 ### 🛡️ Level 2: Enhanced Runtime  
-- Property access: ~3-5 additional CPU cycles for complex deobfuscation
+- Property access: additional CPU cycles for deobfuscation
 - Memory usage: Slight increase from additional transformations
 - JIT optimization: Partial inlining due to complexity
 
-### 🔐 Level 3: Compile-Time (Best Security/Performance Balance)
-- Property access: ~1-2 additional CPU cycles for deobfuscation
-- Memory usage: Negligible - only obfuscated hex values stored
-- JIT optimization: Good inlining potential for deobfuscation methods
+### 🔐 Level 3: Compile-Time
+- Same as Level 2
 - **Build time**: +1-2 seconds for obfuscation generation
 
-### 🛡️ Level 4: Asymmetric Encryption (No Runtime Performance)
-- Property access: **Immediate exception throw** (CryptographicException)
-- Memory usage: Encrypted byte arrays + RSA public key (~270 bytes)
-- JIT optimization: Exception path - no meaningful performance metrics
+### 🛡️ Level 4: One-Way Decryption (Most secure)
+- Property access: **RSA decryption overhead** (~10-50 milliseconds per access)
+- Memory usage: Encrypted byte arrays + RSA keys (~1460 bytes total)
+- JIT optimization: Limited due to RSA decryption complexity
 - **Build time**: +2-3 seconds for RSA key generation and encryption
 
 ## 📈 Test Coverage
 
 The project includes comprehensive tests covering **70+ test cases**:
 
-**🧪 NUnit Tests (ObfuscationTest)**:
+**🧪 NUnit Tests**:
 - ✅ **Pattern Validation**: 7 scrambling patterns × 10 random values = 70 test cases
 - ✅ **Algorithm Correctness**: Round-trip validation of all obfuscation transformations
 - ✅ **SecureConstants Accuracy**: Mathematical precision validation (π, e, √2, φ)

@@ -11,7 +11,9 @@
   </PropertyGroup>
 
 
-  <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild">
+  <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild" 
+          Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs" 
+          Outputs="$(MSBuildProjectDirectory)\Constants.Level3.generated.cs;$(MSBuildProjectDirectory)\Constants.Level4.generated.cs">
     <Message Text="🔐 Generating compile-time obfuscated constants..." Importance="high" />
     <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\ConstantObfuscator\ConstantObfuscator.csproj&quot; -- &quot;$(MSBuildProjectDirectory)&quot;" />
   </Target>
