@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -42,10 +43,14 @@ class Program
         };
 
         // Generate Level 3: Compile-time obfuscated constants
-        GenerateSecureConstants(new(Path.Combine(outputDir, "Constants.Level3.generated.cs")), doubleConstants, intConstants, decimalConstants);
+        FileInfo level3File = new(Path.Combine(outputDir, "Constants.Level3.generated.cs"));
+        if(level3File.Exists) level3File.Delete();
+        GenerateSecureConstants(level3File, doubleConstants, intConstants, decimalConstants);
 
         // Generate Level 4: Asymmetric encryption constants  
-        GenerateAsymmetricConstants(new(Path.Combine(outputDir, "Constants.Level4.generated.cs")), doubleConstants, intConstants, decimalConstants);
+        FileInfo level4File = new(Path.Combine(outputDir, "Constants.Level4.generated.cs"));
+        if (level4File.Exists) level4File.Delete();
+        GenerateAsymmetricConstants(level4File, doubleConstants, intConstants, decimalConstants);
 
         Console.WriteLine("✅ All obfuscated constants generated successfully!");
     }
@@ -65,7 +70,7 @@ class Program
         // Generate obfuscated values
         var doubleObfuscated = doubleConstants.ToDictionary(
             kvp => kvp.Key,
-            kvp => Level3.ApplyComplexObfuscation((ulong)BitConverter.DoubleToInt64Bits(kvp.Value), randomKey, kvp.Key)
+            kvp => Level3.ApplyComplexObfuscation(Unsafe.BitCast<double, ulong>(kvp.Value), randomKey, kvp.Key)
         );
 
         var intObfuscated = intConstants.ToDictionary(
@@ -93,9 +98,9 @@ class Program
             using System.Runtime.CompilerServices;
             using System.Runtime.InteropServices;
 
-            namespace HardToModifyRuntimeConstants;
+            namespace HardToModifyRuntimeConstants {
 
-            public static class SecureConstants
+            public static partial class SecureConstants
             {
                 private readonly struct ConstantContainer()
                 {
@@ -124,7 +129,7 @@ class Program
         // Generate property accessors
         string doubleAccessors = string.Join("\n\n", doubleConstants.Keys.Select(key => $$"""
                 public static unsafe double {{key}} =>
-                    BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
+                    Unsafe.BitCast<ulong, double>(ReverseComplexObfuscation(
                         ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->{{key}},
                         _pepper, "{{key}}"));
             """));
@@ -153,20 +158,29 @@ class Program
                 }
             """));
 
-        content += $"""
+        content += $$"""
 
-            {doubleAccessors}
+            {{doubleAccessors}}
 
-            {intAccessors}
+            {{intAccessors}}
 
-            {decimalAccessors}
+            {{decimalAccessors}}
+
+            }
+            }
+
             """;
 
         // Generate obfuscation/deobfuscation methods
-        content += File.ReadAllText("../ConstantObfuscator/Level3.Backward.cs");
+        string backwardPath = Path.Combine(AppContext.BaseDirectory, "Level3.Backward.cs");
+        if (!File.Exists(backwardPath))
+        {
+            // Try alternative path for when running from project directory
+            backwardPath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!, "..", "..", "..", "Level3.Backward.cs");
+        }
+        content += File.ReadAllText(backwardPath);
         
-        content += "}";
-
+        
         // Write the generated file
         File.WriteAllText(outputFile.FullName, content);
         Console.WriteLine($"Generated: {outputFile.Name}");

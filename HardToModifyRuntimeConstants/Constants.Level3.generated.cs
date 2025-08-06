@@ -4,35 +4,35 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace HardToModifyRuntimeConstants;
+namespace HardToModifyRuntimeConstants {
 
-public static class SecureConstants
+public static partial class SecureConstants
 {
     private readonly struct ConstantContainer()
     {
-        public readonly ulong Pi = 0x11F25858A4C9F4BCUL;
-        public readonly ulong E = 0x83BCDA8B181B6FB0UL;
-        public readonly ulong Sqrt2 = 0x93881EEE3E6F1809UL;
-        public readonly ulong GoldenRatio = 0xBD518B7994688EE3UL;
-        public readonly uint MaxInt32 = 0x0E301162U;
-        public readonly uint Answer = 0x1B8E2E73U;
-        public readonly uint PiDecimal_Lo = 0xAF51FED8U;
-        public readonly uint PiDecimal_Mid = 0x32FA253CU;
-        public readonly uint PiDecimal_Hi = 0x3F211D35U;
-        public readonly uint PiDecimal_Flags = 0xEF659C38U;
-        public readonly uint EDecimal_Lo = 0x5474C029U;
-        public readonly uint EDecimal_Mid = 0x3FD34895U;
-        public readonly uint EDecimal_Hi = 0x0A5BC5D5U;
-        public readonly uint EDecimal_Flags = 0x465EE9C0U;
-        public readonly uint OnePercent_Lo = 0xE5F373DDU;
-        public readonly uint OnePercent_Mid = 0xC9087BBEU;
-        public readonly uint OnePercent_Hi = 0x9A26DD72U;
-        public readonly uint OnePercent_Flags = 0xBD578C22U;
+        public readonly ulong Pi = 0x1A68AF604E73BF8AUL;
+        public readonly ulong E = 0xB6A0079BE0531AFBUL;
+        public readonly ulong Sqrt2 = 0x1818F642BADC0FA2UL;
+        public readonly ulong GoldenRatio = 0x380FC9C9C23B1F8CUL;
+        public readonly uint MaxInt32 = 0x886EC153U;
+        public readonly uint Answer = 0xB56CA4E1U;
+        public readonly uint PiDecimal_Lo = 0x2818B605U;
+        public readonly uint PiDecimal_Mid = 0x190DF3D6U;
+        public readonly uint PiDecimal_Hi = 0x0C59EFAEU;
+        public readonly uint PiDecimal_Flags = 0x4A8D401EU;
+        public readonly uint EDecimal_Lo = 0xF36C1908U;
+        public readonly uint EDecimal_Mid = 0x457AFDE5U;
+        public readonly uint EDecimal_Hi = 0x2B27BC2BU;
+        public readonly uint EDecimal_Flags = 0xC80D461DU;
+        public readonly uint OnePercent_Lo = 0xC96203D4U;
+        public readonly uint OnePercent_Mid = 0xC9620344U;
+        public readonly uint OnePercent_Hi = 0xC96202C4U;
+        public readonly uint OnePercent_Flags = 0xC9621244U;
     }
 
     private static readonly long _storage;
     private static readonly long _storageKey = Random.Shared.NextInt64();
-    private const long _pepper = unchecked((long)0x47B3974FBE643000L);
+    private const long _pepper = unchecked((long)0x4C0F6277EB16E813L);
 
     static SecureConstants()
     {
@@ -41,22 +41,22 @@ public static class SecureConstants
         _storage = pointer ^ _storageKey ^ _pepper;
     }
     public static unsafe double Pi =>
-        BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
+        Unsafe.BitCast<ulong, double>(ReverseComplexObfuscation(
             ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->Pi,
             _pepper, "Pi"));
 
     public static unsafe double E =>
-        BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
+        Unsafe.BitCast<ulong, double>(ReverseComplexObfuscation(
             ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->E,
             _pepper, "E"));
 
     public static unsafe double Sqrt2 =>
-        BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
+        Unsafe.BitCast<ulong, double>(ReverseComplexObfuscation(
             ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->Sqrt2,
             _pepper, "Sqrt2"));
 
     public static unsafe double GoldenRatio =>
-        BitConverter.Int64BitsToDouble((long)ReverseComplexObfuscation(
+        Unsafe.BitCast<ulong, double>(ReverseComplexObfuscation(
             ((ConstantContainer*)(_storage ^ _storageKey ^ _pepper))->GoldenRatio,
             _pepper, "GoldenRatio"));
 
@@ -113,84 +113,117 @@ public static class SecureConstants
             ];
             return new decimal(bits);
         }
-    }internal static unsafe ulong ReverseComplexObfuscation(ulong scrambled, long key, string identifier)
-{
-    uint identifierHash = (uint)identifier.GetHashCode();
-    ulong keyMix = (ulong)(key ^ identifierHash);
-
-    // Step 1: Byte scrambling based on identifier hash using unsafe pointers
-    byte pattern = (byte)(identifierHash % 8);
-    ulong value;
-
-    byte* srcPtr = (byte*)&value;
-    byte* destPtr = (byte*)&scrambled;
-
-    switch (pattern)
-    {
-        case 0:
-            (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 1:
-            (srcPtr[3], srcPtr[1], srcPtr[7], srcPtr[0], srcPtr[4], srcPtr[6], srcPtr[2], srcPtr[5])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 2:
-            (srcPtr[5], srcPtr[2], srcPtr[0], srcPtr[6], srcPtr[3], srcPtr[7], srcPtr[1], srcPtr[4])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 3:
-            (srcPtr[6], srcPtr[3], srcPtr[1], srcPtr[5], srcPtr[7], srcPtr[0], srcPtr[4], srcPtr[2])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 4:
-            (srcPtr[2], srcPtr[6], srcPtr[4], srcPtr[1], srcPtr[0], srcPtr[5], srcPtr[7], srcPtr[3])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 5:
-            (srcPtr[1], srcPtr[7], srcPtr[5], srcPtr[3], srcPtr[6], srcPtr[2], srcPtr[0], srcPtr[4])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 6:
-            (srcPtr[4], srcPtr[0], srcPtr[6], srcPtr[2], srcPtr[1], srcPtr[3], srcPtr[5], srcPtr[7])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
-        case 7:
-            (srcPtr[7], srcPtr[4], srcPtr[2], srcPtr[6], srcPtr[5], srcPtr[1], srcPtr[3], srcPtr[0])
-          = (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7]);
-            break;
     }
 
-    // Step 2: Bit rotation based on identifier
-    int rotation = (int)(identifierHash % 31) + 1; // 1-31 bit rotation
-    ulong rotated = (value >> rotation) | (value << (64 - rotation));
-
-    // Step 3: XOR with keys and magic constant
-    return rotated ^ keyMix ^ 0xABCDEF0123456789UL;
 }
+}
+// MUST NOT HAVE USINGS!
 
-internal static unsafe uint ReverseComplexObfuscation32(uint value, long key, string identifier)
+namespace HardToModifyRuntimeConstants
 {
-    uint identifierHash = (uint)identifier.GetHashCode();
-    uint keyMix = (uint)(key ^ identifierHash);
 
-    // Byte scrambling for 32-bit values using unsafe pointers
-    byte pattern = (byte)(identifierHash % 4);
-    uint scrambled;
-
-    byte* srcPtr = (byte*)&value;
-    byte* destPtr = (byte*)&scrambled;
-    (destPtr[0], destPtr[1], destPtr[2], destPtr[3]) = pattern switch
+    partial class SecureConstants
     {
-        1 => (srcPtr[3], srcPtr[1], srcPtr[0], srcPtr[2]),
-        2 => (srcPtr[2], srcPtr[0], srcPtr[3], srcPtr[1]),
-        3 => (srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[0]),
-        _ => (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3])
-    };
+        private static uint Hash(string name) => System.Text.Encoding.Unicode.GetBytes(name).Aggregate(0U, (c, n) => ((c << 7) | (c >> 25)) ^ n);
 
-    // Bit rotation
-    int rotation = (int)(identifierHash % 15) + 1; // 1-15 bit rotation
-    uint rotated = (scrambled << rotation) | (scrambled >> (32 - rotation));
+        internal static unsafe ulong ReverseComplexObfuscation(ulong obfuscated, long key, string identifier)
+        {
+            var identifierHash = Hash(identifier);
+            ulong keyMix = (ulong)(key ^ identifierHash);
 
-    return rotated ^ keyMix ^ 0x12345678U;
-}}
+            // Step 3 (reverse): XOR with keys and magic constant
+            ulong rotated = obfuscated ^ keyMix ^ 0xABCDEF0123456789UL;
+
+            // Step 2 (reverse): Bit rotation - RIGHT rotation to undo LEFT rotation
+            int rotation = (int)(identifierHash % 31) + 1; // 1-31 bit rotation
+            ulong scrambled = (rotated >> rotation) | (rotated << (64 - rotation));
+
+            // Step 1 (reverse): Byte unscrambling - inverse of forward scrambling
+            byte pattern = (byte)(identifierHash % 8);
+            ulong value;
+            
+            byte* srcPtr = (byte*)&scrambled;
+            byte* destPtr = (byte*)&value;
+
+            switch (pattern)
+            {
+                case 0:
+                    (destPtr[0], destPtr[1], destPtr[2], destPtr[3], destPtr[4], destPtr[5], destPtr[6], destPtr[7])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 1:
+                    (destPtr[3], destPtr[1], destPtr[7], destPtr[0], destPtr[4], destPtr[6], destPtr[2], destPtr[5])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 2:
+                    (destPtr[5], destPtr[2], destPtr[0], destPtr[6], destPtr[3], destPtr[7], destPtr[1], destPtr[4])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 3:
+                    (destPtr[6], destPtr[3], destPtr[1], destPtr[5], destPtr[7], destPtr[0], destPtr[4], destPtr[2])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 4:
+                    (destPtr[2], destPtr[6], destPtr[4], destPtr[1], destPtr[0], destPtr[5], destPtr[7], destPtr[3])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 5:
+                    (destPtr[1], destPtr[7], destPtr[5], destPtr[3], destPtr[6], destPtr[2], destPtr[0], destPtr[4])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 6:
+                    (destPtr[4], destPtr[0], destPtr[6], destPtr[2], destPtr[1], destPtr[3], destPtr[5], destPtr[7])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+                case 7:
+                    (destPtr[7], destPtr[4], destPtr[2], destPtr[6], destPtr[5], destPtr[1], destPtr[3], destPtr[0])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7]);
+                    break;
+            }
+            
+            return value;
+        }
+
+        internal static unsafe uint ReverseComplexObfuscation32(uint obfuscated, long key, string identifier)
+        {
+            var identifierHash = Hash(identifier);
+            uint keyMix = (uint)(key ^ identifierHash);
+
+            // Step 3 (reverse): XOR
+            uint rotated = obfuscated ^ keyMix ^ 0x12345678U;
+
+            // Step 2 (reverse): Bit rotation - RIGHT rotation to undo LEFT
+            int rotation = (int)(identifierHash % 15) + 1; // 1-15 bit rotation
+            uint scrambled = (rotated >> rotation) | (rotated << (32 - rotation));
+
+            // Step 1 (reverse): Byte unscrambling
+            byte pattern = (byte)(identifierHash % 4);
+            uint value;
+
+            byte* srcPtr = (byte*)&scrambled;
+            byte* destPtr = (byte*)&value;
+            switch (pattern)
+            {
+                case 0:
+                    (destPtr[0], destPtr[1], destPtr[2], destPtr[3])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3]);
+                    break;
+                case 1:
+                    (destPtr[3], destPtr[1], destPtr[0], destPtr[2])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3]);
+                    break;
+                case 2:
+                    (destPtr[2], destPtr[0], destPtr[3], destPtr[1])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3]);
+                    break;
+                case 3:
+                    (destPtr[1], destPtr[2], destPtr[3], destPtr[0])
+                  = (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3]);
+                    break;
+            }
+
+            return value;
+        }
+
+    }
+}

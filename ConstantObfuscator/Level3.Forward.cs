@@ -9,15 +9,17 @@ namespace ConstantObfuscator;
 internal class Level3
 {
 
+    private static uint Hash(string name) => Encoding.Unicode.GetBytes(name).Aggregate(0U, (c,n)=>((c << 7) | (c >> 25)) ^ n );
+
     internal static unsafe ulong ApplyComplexObfuscation(ulong value, long key, string identifier)
     {
-        uint identifierHash = (uint)identifier.GetHashCode();
+        var identifierHash = Hash(identifier);
         ulong keyMix = (ulong)(key ^ identifierHash);
 
         // Step 1: Byte scrambling based on identifier hash using unsafe pointers
         byte pattern = (byte)(identifierHash % 8);
         ulong scrambled;
-
+        
         byte* srcPtr = (byte*)&value;
         byte* destPtr = (byte*)&scrambled;
 
@@ -32,7 +34,7 @@ internal class Level3
             7 => (srcPtr[7], srcPtr[4], srcPtr[2], srcPtr[6], srcPtr[5], srcPtr[1], srcPtr[3], srcPtr[0]),
             _ => (srcPtr[0], srcPtr[1], srcPtr[2], srcPtr[3], srcPtr[4], srcPtr[5], srcPtr[6], srcPtr[7])
         };
-
+        
         // Step 2: Bit rotation based on identifier
         int rotation = (int)(identifierHash % 31) + 1; // 1-31 bit rotation
         ulong rotated = (scrambled << rotation) | (scrambled >> (64 - rotation));
@@ -43,7 +45,7 @@ internal class Level3
 
     internal static unsafe uint ApplyComplexObfuscation32(uint value, long key, string identifier)
     {
-        uint identifierHash = (uint)identifier.GetHashCode();
+        var identifierHash = Hash(identifier);
         uint keyMix = (uint)(key ^ identifierHash);
 
         // Byte scrambling for 32-bit values using unsafe pointers

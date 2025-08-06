@@ -11,11 +11,22 @@
   </PropertyGroup>
 
 
+  <!-- Add project reference to ensure ConstantObfuscator is built first -->
+  <ItemGroup>
+    <ProjectReference Include="..\ConstantObfuscator\ConstantObfuscator.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
   <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild" 
-          Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs" 
-          Outputs="$(MSBuildProjectDirectory)\Constants.Level3.generated.cs;$(MSBuildProjectDirectory)\Constants.Level4.generated.cs">
+          Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Forward.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Backward.cs" 
+          Outputs="$(MSBuildProjectDirectory)\Constants.Level3.generated.cs;$(MSBuildProjectDirectory)\Constants.Level4.generated.cs"
+          DependsOnTargets="_BuildConstantObfuscator">
     <Message Text="🔐 Generating compile-time obfuscated constants..." Importance="high" />
     <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\ConstantObfuscator\ConstantObfuscator.csproj&quot; -- &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+
+  <!-- Ensure ConstantObfuscator is built before generating constants -->
+  <Target Name="_BuildConstantObfuscator">
+    <MSBuild Projects="..\ConstantObfuscator\ConstantObfuscator.csproj" Targets="Build" />
   </Target>
 
 </Project>

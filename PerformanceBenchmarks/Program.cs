@@ -20,7 +20,7 @@ public class ConstantAccessBenchmarks
     public double AccessEnhancedConstants()
     {
         // Access enhanced constants (Level 2)
-        return EnhancedConstants.Pi + EnhancedConstants.E + EnhancedConstants.Sqrt2 + EnhancedConstants.GoldenRatio;
+        return EnhancedDoubleConstants.Pi + EnhancedDoubleConstants.E + EnhancedDoubleConstants.Sqrt2 + EnhancedDoubleConstants.GoldenRatio;
     }
 
     [Benchmark(Description = "Level 3: Compile-Time Obfuscated")]
@@ -48,7 +48,7 @@ public class IntegerAccessBenchmarks
     [Benchmark(Description = "Level 2: Enhanced Integer Access", Baseline = true)]
     public int AccessEnhancedIntegers()
     {
-        return EnhancedConstants.MaxInt32 + EnhancedConstants.Answer;
+        return EnhancedDoubleConstants.MaxInt32 + EnhancedDoubleConstants.Answer;
     }
 
     [Benchmark(Description = "Level 3: Secure Integer Access")]
@@ -65,7 +65,7 @@ public class DecimalAccessBenchmarks
     [Benchmark(Description = "Level 2: Enhanced Decimal Access", Baseline = true)]
     public decimal AccessEnhancedDecimals()
     {
-        return DecimalConstants.PiDecimal + DecimalConstants.EDecimal + DecimalConstants.OnePercent;
+        return EnhancedDecimalConstants.PiDecimal + EnhancedDecimalConstants.EDecimal + EnhancedDecimalConstants.OnePercent;
     }
 
     [Benchmark(Description = "Level 3: Secure Decimal Access")]

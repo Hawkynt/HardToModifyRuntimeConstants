@@ -70,3 +70,5 @@ Console.WriteLine("🔒 Level 1: Basic runtime protection");
 Console.WriteLine("🛡️ Level 2: Enhanced runtime obfuscation (VULNERABLE - original values visible)");
 Console.WriteLine("🔐 Level 3: Compile-time obfuscation (RECOMMENDED)");
 Console.WriteLine("🛡️ Level 4: Asymmetric encryption (decryptable at runtime)");
+
+Console.ReadKey(false);
