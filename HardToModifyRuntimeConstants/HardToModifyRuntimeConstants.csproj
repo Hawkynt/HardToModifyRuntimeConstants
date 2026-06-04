@@ -12,10 +12,9 @@
   </PropertyGroup>
 
 
-  <!-- Add project reference to ensure ConstantObfuscator is built first -->
-  <ItemGroup>
-    <ProjectReference Include="..\ConstantObfuscator\ConstantObfuscator.csproj" PrivateAssets="all" />
-  </ItemGroup>
+  <!-- NOTE: deliberately NO ProjectReference to ConstantObfuscator - it is a build-time
+       codegen tool, not a runtime dependency. Referencing it trips NETSDK1150 when
+       publishing self-contained (AOT). Build ordering is handled by the targets below. -->
 
   <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild" 
           Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Forward.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Backward.cs" 
