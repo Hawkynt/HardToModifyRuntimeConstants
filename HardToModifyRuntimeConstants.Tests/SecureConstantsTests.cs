@@ -55,11 +55,17 @@ public class SecureConstantsTests
     {
         // This test verifies that the generated constants don't contain plain text values
         Type constantsType = typeof(SecureConstants);
+
+        // Check that we have obfuscated storage: the container is never stored directly,
+        // only its XOR-masked pinned address lives in the static long _storage field
+        var storageField = constantsType.GetField("_storage", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(storageField, Is.Not.Null);
+        Assert.That(storageField.FieldType, Is.EqualTo(typeof(long)));
+
+        // No static field may expose the container type itself
         FieldInfo[] fields = constantsType.GetFields(BindingFlags.NonPublic | BindingFlags.Static);
-        
-        // Check that we have obfuscated storage
         var containerFields = fields.Where(f => f.FieldType.Name.Contains("ConstantContainer")).ToArray();
-        Assert.That(containerFields, Is.Not.Empty);
+        Assert.That(containerFields, Is.Empty);
         
         // The container should contain obfuscated values only
         var containerType = constantsType.GetNestedTypes(BindingFlags.NonPublic).FirstOrDefault(t => t.Name.Contains("ConstantContainer"));
@@ -107,24 +113,24 @@ public class SecureConstantsTests
         // Verify that the keys are randomized and not hardcoded
         Type constantsType = typeof(SecureConstants);
         var storageKeyField = constantsType.GetField("_storageKey", BindingFlags.NonPublic | BindingFlags.Static);
-        var sessionKeyField = constantsType.GetField("_sessionKey", BindingFlags.NonPublic | BindingFlags.Static);
-        
+        var pepperField = constantsType.GetField("_pepper", BindingFlags.NonPublic | BindingFlags.Static);
+
         Assert.That(storageKeyField, Is.Not.Null);
-        Assert.That(sessionKeyField, Is.Not.Null);
-        
+        Assert.That(pepperField, Is.Not.Null);
+
         long storageKey = (long)storageKeyField.GetValue(null);
-        long sessionKey = (long)sessionKeyField.GetValue(null);
-        
+        long pepper = (long)pepperField.GetValue(null);
+
         // Keys should not be zero (extremely unlikely with cryptographic randomness)
         Assert.That(storageKey, Is.Not.EqualTo(0L));
-        Assert.That(sessionKey, Is.Not.EqualTo(0L));
-        
+        Assert.That(pepper, Is.Not.EqualTo(0L));
+
         // Keys should be different from each other
-        Assert.That(sessionKey, Is.Not.EqualTo(storageKey));
-        
+        Assert.That(pepper, Is.Not.EqualTo(storageKey));
+
         // Keys should not be simple patterns
         Assert.That(storageKey, Is.Not.EqualTo(0x1234567812345678L));
-        Assert.That(sessionKey, Is.Not.EqualTo(0xABCDEFABCDEFABCDL));
+        Assert.That(pepper, Is.Not.EqualTo(unchecked((long)0xABCDEFABCDEFABCDL)));
     }
 
     [Test]
