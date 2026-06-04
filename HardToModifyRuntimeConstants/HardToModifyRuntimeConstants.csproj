@@ -16,17 +16,14 @@
        codegen tool, not a runtime dependency. Referencing it trips NETSDK1150 when
        publishing self-contained (AOT). Build ordering is handled by the targets below. -->
 
-  <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild" 
-          Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Forward.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Backward.cs" 
-          Outputs="$(MSBuildProjectDirectory)\Constants.Level3.generated.cs;$(MSBuildProjectDirectory)\Constants.Level4.generated.cs"
-          DependsOnTargets="_BuildConstantObfuscator">
+  <!-- dotnet run restores AND builds the tool in its own process, so no extra
+       restore/build target is needed - and no global properties (RID, AOT, ...)
+       from this project leak into the tool build. -->
+  <Target Name="GenerateObfuscatedConstants" BeforeTargets="BeforeBuild"
+          Inputs="$(MSBuildProjectDirectory)\..\ConstantObfuscator\Program.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Forward.cs;$(MSBuildProjectDirectory)\..\ConstantObfuscator\Level3.Backward.cs"
+          Outputs="$(MSBuildProjectDirectory)\Constants.Level3.generated.cs;$(MSBuildProjectDirectory)\Constants.Level4.generated.cs">
     <Message Text="🔐 Generating compile-time obfuscated constants..." Importance="high" />
     <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\ConstantObfuscator\ConstantObfuscator.csproj&quot; -- &quot;$(MSBuildProjectDirectory)&quot;" />
-  </Target>
-
-  <!-- Ensure ConstantObfuscator is built before generating constants -->
-  <Target Name="_BuildConstantObfuscator">
-    <MSBuild Projects="..\ConstantObfuscator\ConstantObfuscator.csproj" Targets="Build" />
   </Target>
 
 </Project>
