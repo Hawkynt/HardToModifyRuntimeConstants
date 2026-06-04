@@ -1,9 +1,21 @@
 # 🔒 HardToModifyRuntimeConstants
 
-![License](https://img.shields.io/github/license/Hawkynt/HardToModifyRuntimeConstants)
-![Language](https://img.shields.io/github/languages/top/Hawkynt/HardToModifyRuntimeConstants?color=purple)
-[![Last Commit](https://img.shields.io/github/last-commit/Hawkynt/HardToModifyRuntimeConstants?branch=main)![Activity](https://img.shields.io/github/commit-activity/y/Hawkynt/HardToModifyRuntimeConstants?branch=main)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/commits/main)
-[![Tests](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/tests.yml/badge.svg)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/tests.yml)
+[![License](https://img.shields.io/github/license/Hawkynt/HardToModifyRuntimeConstants)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/blob/main/LICENSE)
+[![Language](https://img.shields.io/github/languages/top/Hawkynt/HardToModifyRuntimeConstants?color=8957D5)](https://github.com/Hawkynt/HardToModifyRuntimeConstants)
+
+[![CI](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/actions/workflows/ci.yml)
+![Last Commit](https://img.shields.io/github/last-commit/Hawkynt/HardToModifyRuntimeConstants?branch=main)
+![Activity](https://img.shields.io/github/commit-activity/m/Hawkynt/HardToModifyRuntimeConstants)
+
+[![Stars](https://img.shields.io/github/stars/Hawkynt/HardToModifyRuntimeConstants?color=FFD700)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/stargazers)
+[![Forks](https://img.shields.io/github/forks/Hawkynt/HardToModifyRuntimeConstants?color=008080)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/network/members)
+[![Issues](https://img.shields.io/github/issues/Hawkynt/HardToModifyRuntimeConstants)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/issues)
+![Code Size](https://img.shields.io/github/languages/code-size/Hawkynt/HardToModifyRuntimeConstants?color=4CAF50)
+![Repo Size](https://img.shields.io/github/repo-size/Hawkynt/HardToModifyRuntimeConstants?color=FF9800)
+
+[![Release](https://img.shields.io/github/v/release/Hawkynt/HardToModifyRuntimeConstants?sort=semver)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases/latest)
+[![Nightly](https://img.shields.io/github/v/release/Hawkynt/HardToModifyRuntimeConstants?include_prereleases=true&sort=date&label=nightly&color=FF9800)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases)
+[![Downloads](https://img.shields.io/github/downloads/Hawkynt/HardToModifyRuntimeConstants/total)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases)
 
 > A C# proof-of-concept for storing constants that are extremely difficult to tamper with.
 
