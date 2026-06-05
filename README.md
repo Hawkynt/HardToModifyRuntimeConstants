@@ -19,8 +19,6 @@
 
 > A C# proof-of-concept for storing constants that are extremely difficult to tamper with.
 
-## Overview
-
 This code provides a technique for defining constants in C# code that are:
 - 🛡️ Protected from runtime tampering via reflection
 - ⚡ Efficiently accessible in runtime code
@@ -80,7 +78,7 @@ Instead of obfuscating at runtime, constants are obfuscated **during compilation
 - Double-precision versions are available for performance-critical code
 - Decimals are also possible using the same technique
 
-## Sample Usage
+## 🚀 Sample Usage
 
 ```csharp
 // Simple usage example
@@ -185,7 +183,7 @@ Impossible without:
 - Not suitable for constants that need to be compile-time constants for the C# compiler
 - Even while the JIT _tries_ to bake-in constants after first resolution it may still be possible to tamper the constant getting method to just return something else
 
-## 🏗️ Build and Test
+## 🛠️ Build and Test
 
 ### Prerequisites
 - .NET 8.0 SDK or later
@@ -273,6 +271,13 @@ The project includes comprehensive tests covering **70+ test cases**:
 - ✅ **JIT Optimization**: Inlining behavior analysis across levels
 - ✅ **Statistical Analysis**: Multiple iterations with confidence intervals
 
-## License
+## ❤️ Support
 
-* [LGPL-3.0](https://en.wikipedia.org/wiki/GNU_Lesser_General_Public_License)
+If this project saves you time or money, consider supporting its development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?logo=githubsponsors)](https://github.com/sponsors/Hawkynt)
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal)](https://www.paypal.me/hawkynt)
+
+## 📜 License
+
+Licensed under LGPL-3.0-or-later — see [LICENSE](LICENSE).
