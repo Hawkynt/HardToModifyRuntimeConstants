@@ -14,7 +14,7 @@
 ![Repo Size](https://img.shields.io/github/repo-size/Hawkynt/HardToModifyRuntimeConstants?color=FF9800)
 
 [![Release](https://img.shields.io/github/v/release/Hawkynt/HardToModifyRuntimeConstants)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases/latest)
-[![Nightly](https://img.shields.io/github/v/release/Hawkynt/HardToModifyRuntimeConstants?include_prereleases&sort=date&label=nightly&color=FF9800)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases)
+[![Nightly](https://img.shields.io/github/v/release/Hawkynt/HardToModifyRuntimeConstants?include_prereleases&sort=date&filter=nightly-*&label=nightly&color=FF9800)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases)
 [![Downloads](https://img.shields.io/github/downloads/Hawkynt/HardToModifyRuntimeConstants/total)](https://github.com/Hawkynt/HardToModifyRuntimeConstants/releases)
 
 > A C# proof-of-concept for storing constants that are extremely difficult to tamper with.
