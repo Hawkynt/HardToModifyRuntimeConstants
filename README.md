@@ -31,7 +31,37 @@ This code is useful for scenarios where constant integrity is critical, such as:
 - 🧮 Scientific computing where precision matters
 - 📋 Licensing mechanisms
 
-## How It Works
+## 🧭 Vision
+
+A constant in a .NET assembly is trivially findable and trivially patchable: the value sits in the
+metadata, a hex editor changes it, and nothing notices. This is a proof of concept for making that
+expensive — constants that are obfuscated at build time and reconstructed at runtime, across four
+escalating levels of difficulty, with the cost of each measured rather than asserted.
+
+It is deliberately framed as *hard to modify*, not impossible. Anything running on the user's machine
+can eventually be changed; the useful question is how much work it takes, and that question deserves
+a benchmark instead of a claim.
+
+## ✨ Features
+
+- Four escalating protection levels, from simple encoding to runtime reconstruction
+- A build-time obfuscator that runs as part of the normal build, so protected constants stay ordinary source
+- BenchmarkDotNet measurements of what each level costs at runtime
+- A security analysis that states what each level does and does not stop
+
+## 📦 Installation
+
+Clone the repository and build it — see [Building](#-building). This is a proof of concept, so there
+is no package: the interesting part is the obfuscator and the demo, not a dependency to take.
+
+## 🚀 Quick start
+
+```csharp
+// Simple usage example
+double circleArea = Constants.Pi * radius * radius;
+```
+
+## ⚙️ How it works
 
 The source employs multiple layers of protection across **four different security levels**:
 
@@ -78,55 +108,49 @@ Instead of obfuscating at runtime, constants are obfuscated **during compilation
 - Double-precision versions are available for performance-critical code
 - Decimals are also possible using the same technique
 
-## 🚀 Sample Usage
+## 📈 Performance
 
-```csharp
-// Simple usage example
-double circleArea = Constants.Pi * radius * radius;
-```
+Performance varies by security level:
 
-## Technical Implementation
+### 🔒 Level 1: Basic (Fastest)
+- Property access: Virtually no overhead
+- Memory usage: Minimal - just pointer obfuscation
+- JIT optimization: Full inlining possible
 
-The implementation uses several advanced C# features across different security levels:
+### 🛡️ Level 2: Enhanced Runtime  
+- Property access: additional CPU cycles for deobfuscation
+- Memory usage: Slight increase from additional transformations
+- JIT optimization: Partial inlining due to complexity
 
-### 🔒 Level 1 & 2: Runtime Protection Features
-**Read-Only Struct**: The underlying values are stored inside a read-only struct.
+### 🔐 Level 3: Compile-Time
+- Same as Level 2
+- **Build time**: +1-2 seconds for obfuscation generation
 
-**Memory Pinning**: Constants are stored in a struct that's pinned in memory, preventing garbage collection and providing a stable address.
+### 🛡️ Level 4: One-Way Decryption (Most secure)
+- Property access: **RSA decryption overhead** (~10-50 milliseconds per access)
+- Memory usage: Encrypted byte arrays + RSA keys (~1460 bytes total)
+- JIT optimization: Limited due to RSA decryption complexity
+- **Build time**: +2-3 seconds for RSA key generation and encryption
 
-**Unsafe Code**: Pointer manipulation for direct memory access and obfuscation.
+## 🧪 Test coverage
 
-**Pointer Obfuscation**: The pointer to the struct is obfuscated using multiple XOR operations.
+The project includes comprehensive tests covering **70+ test cases**:
 
-### 🔐 Level 3 & 4: Compile-Time Obfuscation/Encryption Features
-**Build Integration**: MSBuild pre-build event automatically runs the obfuscator tool.
+**🧪 NUnit Tests**:
+- ✅ **Pattern Validation**: 7 scrambling patterns × 10 random values = 70 test cases
+- ✅ **Algorithm Correctness**: Round-trip validation of all obfuscation transformations
+- ✅ **SecureConstants Accuracy**: Mathematical precision validation (π, e, √2, φ)
+- ✅ **CryptoConstants Security**: Exception throwing behavior validation
+- ✅ **Edge Case Handling**: Boundary conditions and error scenarios
 
-**Cryptographic Randomness**: Uses `RandomNumberGenerator.Create()` for secure key generation.
+**⚡ BenchmarkDotNet Performance Tests**:
+- ✅ **Performance Profiling**: All 4 security levels benchmarked
+- ✅ **Memory Analysis**: Allocation tracking and memory usage profiling  
+- ✅ **Baseline Comparisons**: Relative performance cost measurement
+- ✅ **JIT Optimization**: Inlining behavior analysis across levels
+- ✅ **Statistical Analysis**: Multiple iterations with confidence intervals
 
-**Multi-Layer Obfuscation Algorithm**:
-```csharp
-// Example obfuscation process (simplified):
-1. Identifier-based byte scrambling (8 patterns)
-2. Bit rotation (1-31 bits based on hash)  
-3. XOR with keyMix ^ 0xABCDEF0123456789UL
-```
-
-**Code Generation**: Dynamically generates `SecureConstants.generated.cs` with:
-- Only obfuscated hex literals
-- Build-specific random keys
-- Corresponding deobfuscation methods
-
-**Reverse Obfuscation**: Runtime deobfuscation applies transformations in reverse order:
-1. XOR reversal
-2. Bit rotation reversal (right rotation)
-3. Byte unscrambling
-
-**Clean API**: Despite the complex security measures, the API remains simple:
-```csharp
-double pi = SecureConstants.Pi;  // Seamless usage
-```
-
-## Security Analysis
+## 🛡️ Security analysis
 
 ### 🔒 Level 1 & 2: Runtime Protection
 **Against Runtime Tampering:**
@@ -176,14 +200,55 @@ Impossible without:
 
 **💡 Result**: Constants are effectively **immutable at the binary level**.
 
-## Limitations
+## 🏗️ Architecture
+
+The implementation uses several advanced C# features across different security levels:
+
+### 🔒 Level 1 & 2: Runtime Protection Features
+**Read-Only Struct**: The underlying values are stored inside a read-only struct.
+
+**Memory Pinning**: Constants are stored in a struct that's pinned in memory, preventing garbage collection and providing a stable address.
+
+**Unsafe Code**: Pointer manipulation for direct memory access and obfuscation.
+
+**Pointer Obfuscation**: The pointer to the struct is obfuscated using multiple XOR operations.
+
+### 🔐 Level 3 & 4: Compile-Time Obfuscation/Encryption Features
+**Build Integration**: MSBuild pre-build event automatically runs the obfuscator tool.
+
+**Cryptographic Randomness**: Uses `RandomNumberGenerator.Create()` for secure key generation.
+
+**Multi-Layer Obfuscation Algorithm**:
+```csharp
+// Example obfuscation process (simplified):
+1. Identifier-based byte scrambling (8 patterns)
+2. Bit rotation (1-31 bits based on hash)  
+3. XOR with keyMix ^ 0xABCDEF0123456789UL
+```
+
+**Code Generation**: Dynamically generates `SecureConstants.generated.cs` with:
+- Only obfuscated hex literals
+- Build-specific random keys
+- Corresponding deobfuscation methods
+
+**Reverse Obfuscation**: Runtime deobfuscation applies transformations in reverse order:
+1. XOR reversal
+2. Bit rotation reversal (right rotation)
+3. Byte unscrambling
+
+**Clean API**: Despite the complex security measures, the API remains simple:
+```csharp
+double pi = SecureConstants.Pi;  // Seamless usage
+```
+
+## ⚠️ Limitations
 
 - Slight performance overhead from deobfuscation (mitigated by JIT inlining)
 - Slightly increased memory usage from storing both obfuscated and random values
 - Not suitable for constants that need to be compile-time constants for the C# compiler
 - Even while the JIT _tries_ to bake-in constants after first resolution it may still be possible to tamper the constant getting method to just return something else
 
-## 🛠️ Build and Test
+## 🛠️ Building
 
 ### Prerequisites
 - .NET 8.0 SDK or later
@@ -228,48 +293,6 @@ dotnet run --project PerformanceBenchmarks/PerformanceBenchmarks.csproj --config
 - **Decimal Access Benchmarks**: Tests high-precision decimal performance
 - **Memory Diagnostics**: Tracks allocations and memory usage
 - **Baseline Comparisons**: Shows relative performance costs
-
-## 🚀 Performance
-
-Performance varies by security level:
-
-### 🔒 Level 1: Basic (Fastest)
-- Property access: Virtually no overhead
-- Memory usage: Minimal - just pointer obfuscation
-- JIT optimization: Full inlining possible
-
-### 🛡️ Level 2: Enhanced Runtime  
-- Property access: additional CPU cycles for deobfuscation
-- Memory usage: Slight increase from additional transformations
-- JIT optimization: Partial inlining due to complexity
-
-### 🔐 Level 3: Compile-Time
-- Same as Level 2
-- **Build time**: +1-2 seconds for obfuscation generation
-
-### 🛡️ Level 4: One-Way Decryption (Most secure)
-- Property access: **RSA decryption overhead** (~10-50 milliseconds per access)
-- Memory usage: Encrypted byte arrays + RSA keys (~1460 bytes total)
-- JIT optimization: Limited due to RSA decryption complexity
-- **Build time**: +2-3 seconds for RSA key generation and encryption
-
-## 📈 Test Coverage
-
-The project includes comprehensive tests covering **70+ test cases**:
-
-**🧪 NUnit Tests**:
-- ✅ **Pattern Validation**: 7 scrambling patterns × 10 random values = 70 test cases
-- ✅ **Algorithm Correctness**: Round-trip validation of all obfuscation transformations
-- ✅ **SecureConstants Accuracy**: Mathematical precision validation (π, e, √2, φ)
-- ✅ **CryptoConstants Security**: Exception throwing behavior validation
-- ✅ **Edge Case Handling**: Boundary conditions and error scenarios
-
-**⚡ BenchmarkDotNet Performance Tests**:
-- ✅ **Performance Profiling**: All 4 security levels benchmarked
-- ✅ **Memory Analysis**: Allocation tracking and memory usage profiling  
-- ✅ **Baseline Comparisons**: Relative performance cost measurement
-- ✅ **JIT Optimization**: Inlining behavior analysis across levels
-- ✅ **Statistical Analysis**: Multiple iterations with confidence intervals
 
 ## ❤️ Support
 
