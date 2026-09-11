@@ -38,3 +38,13 @@ jobs:
         run: dotnet test HardToModifyRuntimeConstants.Tests/HardToModifyRuntimeConstants.Tests.csproj --configuration Release --no-build
       - name: Test (Obfuscator.Tests)
         run: dotnet test Obfuscator.Tests/Obfuscator.Tests.csproj --configuration Release --no-build
+
+  # A text lint over README.md against the house convention — no build, no toolchain — so it
+  # runs beside the rest rather than inside it and cannot mask them.
+  repo-readme:
+    name: repo README
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Hawkynt/RepositoryTemplate/repo-readme@v1
